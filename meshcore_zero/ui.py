@@ -29,6 +29,14 @@ class UI:
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
 
+    def render_key(self):
+        """Visible model revision; idle input polling must not repaint the UI."""
+        return (self.store.db.total_changes, self.screen, self.menu, self.selected,
+            self.chat['id'] if self.chat else None, self.draft, self.scroll,
+            self.toast if time.monotonic() < self.toast_until else '',
+            self.backend.state if self.backend else '',
+            self.backend.error if self.backend else '', time.strftime('%H:%M'))
+
     def font(self, size=12, bold=False):
         key = (size, bold)
         if key not in self.fonts:

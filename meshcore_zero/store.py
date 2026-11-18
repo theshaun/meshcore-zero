@@ -81,4 +81,4 @@ class Store:
 
     def read(self, chat):
         with self.db:
-            self.db.execute("UPDATE chats SET unread=0 WHERE id=?", (chat,))
+            self.db.execute("UPDATE chats SET unread=0 WHERE id=? AND unread!=0", (chat,))

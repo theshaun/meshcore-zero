@@ -6,6 +6,8 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+from PIL import Image
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'vendor'))
 from Crypto.Cipher import AES
@@ -14,7 +16,7 @@ from openhop_core.protocol.packet_builder import PacketBuilder
 from meshcore_zero.store import Store, PUBLIC_KEY, PRESETS
 from meshcore_zero.ui import UI
 from meshcore_zero.radio import Backend, configure_mesh_sync
-from meshcore_zero.hardware import Keyboard
+from meshcore_zero.hardware import Keyboard, Framebuffer
 
 
 class StoreTests(unittest.TestCase):
@@ -82,6 +84,47 @@ class StoreTests(unittest.TestCase):
                 await backend.send(self.store.chats()[0],'hello')
             self.assertEqual(self.store.history('public'),[])
         asyncio.run(scenario())
+
+    def test_idle_chat_stops_redrawing_and_new_message_invalidates(self):
+        ui=UI(self.store)
+        ui.open_chat(self.store.chats()[0])
+        before=ui.render_key()
+        ui.render()
+        self.assertEqual(before,ui.render_key())
+        self.store.add('public','Alice','new message',unread=True)
+        self.assertNotEqual(before,ui.render_key())
+        ui.render()
+        after=ui.render_key()
+        ui.render()
+        self.assertEqual(after,ui.render_key())
+
+
+class FramebufferTests(unittest.TestCase):
+    def test_shared_mapping_updates_pixels_with_stride_and_viewport(self):
+        stride=644
+        size=stride*171
+        with tempfile.NamedTemporaryFile() as file:
+            file.truncate(size)
+            def ioctl(fd,request,buffer):
+                if request==0x4600:
+                    struct.pack_into('7I',buffer,0,320,170,322,171,1,1,16)
+                    for position,field in zip((32,44,56),((11,5,0),(5,6,0),(0,5,0))):
+                        struct.pack_into('3I',buffer,position,*field)
+                elif request==0x4602:
+                    struct.pack_into('I',buffer,16+struct.calcsize('L'),size)
+                    struct.pack_into('I',buffer,48,stride)
+            with patch('meshcore_zero.hardware.fcntl.ioctl',side_effect=ioctl):
+                fb=Framebuffer(file.name)
+            try:
+                fb.write(Image.new('RGB',(320,170),(255,0,0)))
+                # Separate descriptor sees the shared pixels, while viewport and
+                # row padding remain untouched. Same path drives LCD dirty pages.
+                file.seek(stride)
+                self.assertEqual(file.read(4),b'\x00\x00\x00\xf8')
+                file.seek(stride+642)
+                self.assertEqual(file.read(2),b'\x00\x00')
+            finally:
+                fb.close()
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):

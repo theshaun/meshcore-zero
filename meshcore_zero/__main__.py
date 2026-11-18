@@ -38,18 +38,17 @@ async def run(args):
     try:
         fb=Framebuffer()
         keyboard=Keyboard()
-        ui.render()  # warm font cache before radio startup
+        fb.write(ui.render())  # Show the inbox before starting the radio.
         startup=asyncio.create_task(backend.start())
         previous=None
         started=loop.time()
         while ui.running and (not args.duration or loop.time()-started<args.duration):
             for key in keyboard.read():
                 await ui.key(key)
-            frame=ui.render()
-            data=frame.tobytes()
-            if data!=previous:
-                fb.write(frame)
-                previous=data
+            key=ui.render_key()
+            if key!=previous:
+                fb.write(ui.render())
+                previous=ui.render_key()
             await asyncio.sleep(0.05)
         await startup
     finally:

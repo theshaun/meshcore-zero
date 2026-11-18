@@ -1,22 +1,31 @@
 """Linux framebuffer and evdev, without requiring an X server or root."""
 import fcntl
 import glob
+import mmap
 import os
 import struct
 
 
 class Framebuffer:
     def __init__(self, device=None):
-        self.fd = os.open(device or os.getenv('APPLAUNCH_LINUX_FBDEV_DEVICE','/dev/fb0'), os.O_RDWR)
-        var = bytearray(160)
-        fcntl.ioctl(self.fd,0x4600,var)
-        self.width,self.height,_,_,self.xoff,self.yoff,self.bpp=struct.unpack_from('7I',var)
-        self.fields = [struct.unpack_from('3I', var, offset) for offset in (32,44,56)]
-        fix=bytearray(80)
-        fcntl.ioctl(self.fd,0x4602,fix)
-        self.stride=struct.unpack_from('I',fix,48)[0]
-        if (self.width,self.height)!=(320,170) or self.bpp not in (16,32):
-            raise RuntimeError(f'Unsupported framebuffer {self.width}x{self.height}/{self.bpp}')
+        device = device or os.getenv('APPLAUNCH_LINUX_FBDEV_DEVICE') or os.getenv('LV_LINUX_FBDEV_DEVICE') or '/dev/fb_lcd'
+        self.fd = os.open(device, os.O_RDWR)
+        try:
+            var = bytearray(160)
+            fcntl.ioctl(self.fd,0x4600,var)
+            self.width,self.height,_,_,self.xoff,self.yoff,self.bpp=struct.unpack_from('7I',var)
+            self.fields = [struct.unpack_from('3I', var, offset) for offset in (32,44,56)]
+            fix=bytearray(80)
+            fcntl.ioctl(self.fd,0x4602,fix)
+            self.stride=struct.unpack_from('I',fix,48)[0]
+            if (self.width,self.height)!=(320,170) or self.bpp not in (16,32):
+                raise RuntimeError(f'Unsupported framebuffer {self.width}x{self.height}/{self.bpp}')
+            smem_len = struct.unpack_from('I',fix,16+struct.calcsize('L'))[0]
+            self.memory = mmap.mmap(self.fd, smem_len, flags=mmap.MAP_SHARED,
+                prot=mmap.PROT_READ | mmap.PROT_WRITE)
+        except BaseException:
+            os.close(self.fd)
+            raise
 
     def write(self, image):
         pixels=bytearray()
@@ -27,10 +36,16 @@ class Framebuffer:
             pixels.extend(value.to_bytes(self.bpp//8,'little'))
         rowbytes=self.width*self.bpp//8
         for y in range(self.height):
-            os.pwrite(self.fd,pixels[y*rowbytes:(y+1)*rowbytes],(y+self.yoff)*self.stride+self.xoff*self.bpp//8)
+            offset=(y+self.yoff)*self.stride+self.xoff*self.bpp//8
+            # panel-mipi-dbi's deferred refresh tracks dirty mapped pages.
+            # pwrite changes readback memory but can leave the physical LCD stale.
+            self.memory[offset:offset+rowbytes]=pixels[y*rowbytes:(y+1)*rowbytes]
 
     def close(self):
-        os.close(self.fd)
+        try:
+            self.memory.close()
+        finally:
+            os.close(self.fd)
 
 
 class Keyboard:

@@ -180,7 +180,8 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                 backend.sync_channels()
                 backend.engine.on_channel_message_event(backend.channel_message)
                 secret=hashlib.sha256(b'#testing').digest()[:16]
-                body=struct.pack('<I',1795044000)+b'\x00Other node: Seen 2'
+                sender='Zero 💨'
+                body=struct.pack('<I',1795044000)+b'\x00'+(sender+': Seen 2').encode('utf-8')
                 body+=b'\x00'*(-len(body)%16)
                 ciphertext=AES.new(secret,AES.MODE_ECB).encrypt(body)
                 payload=hashlib.sha256(secret).digest()[:1]+hmac.digest(secret,ciphertext,'sha256')[:2]+ciphertext
@@ -191,10 +192,12 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(before,ui.render_key())
                 history=store.history('#testing')
                 self.assertEqual(len(history),1)
-                self.assertEqual((history[0]['sender'],history[0]['text']),('Other node','Seen 2'))
+                self.assertEqual((history[0]['sender'],history[0]['text']),(sender,'Seen 2'))
                 self.assertEqual(store.chats()[0]['id'],'#testing')
                 self.assertEqual(store.chats()[0]['unread'],1)
                 self.assertEqual(store.history('public'),[])
+                ui.open_chat(store.chats()[0])
+                self.assertEqual(ui.render().size,(320,170))
                 # Repeated flood copies are retained only once.
                 await backend.engine.node.dispatcher._process_received_packet(wire,-62,8.0)
                 self.assertEqual(len(store.history('#testing')),1)

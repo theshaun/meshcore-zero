@@ -25,7 +25,7 @@ def main():
         if runtime.exists(): shutil.rmtree(runtime)
         subprocess.run([sys.executable,'-m','pip','install','--only-binary=:all:', '--target',str(runtime),'-r','requirements-radio.lock'],check=True)
         (runtime/'.complete').touch()
-    for name in ('meshcore_zero','vendor'):
+    for name in ('meshcore_zero','vendor','assets'):
         shutil.copytree(ROOT/name,app/name,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(runtime,app/'runtime',ignore=shutil.ignore_patterns('__pycache__','*.pyc','.complete'))
     shutil.copy2(ROOT/'LICENSE',app/'LICENSE')

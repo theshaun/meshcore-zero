@@ -2,6 +2,7 @@
 import time
 from PIL import Image, ImageDraw, ImageFont
 from .store import radio_config
+from .text import Text
 
 BG = '#101d29'
 PANEL = '#172938'
@@ -26,6 +27,7 @@ class UI:
         self.running = True
         self.tasks = set()
         self.fonts = {}
+        self.text = Text(self.font)
 
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
@@ -36,7 +38,7 @@ class UI:
             self.chat['id'] if self.chat else None, self.draft, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
             self.backend.state if self.backend else '',
-            self.backend.error if self.backend else '', time.strftime('%H:%M'))
+            self.backend.error if self.backend else '')
 
     def font(self, size=12, bold=False):
         key = (size, bold)
@@ -63,6 +65,24 @@ class UI:
     def nodes(self):
         import json
         return [json.loads(r[0]) for r in self.store.db.execute('SELECT data FROM nodes ORDER BY key')]
+
+    def local_name(self):
+        if self.backend and self.backend.engine:
+            return self.backend.engine.prefs.node_name
+        return self.store.get('name','MeshCore Zero')
+
+    def chat_lines(self, history):
+        lines = []
+        for msg in history:
+            outgoing = msg['status'] != 'received'
+            # Old releases persisted "You". Keep that history readable while
+            # new messages retain the node name used at transmission time.
+            name = self.local_name() if outgoing and msg['sender'] == 'You' else msg['sender']
+            body = msg['text']
+            if msg['status'] in ('failed','unconfirmed','interrupted'):
+                body += ' ['+msg['status']+']'
+            lines.extend(self.text.wrap([(name+': ',ACCENT if outgoing else MUTED),(body,TEXT)],300,11))
+        return lines
 
     async def key(self, key):
         if key == 'tab':
@@ -179,96 +199,81 @@ class UI:
         img = Image.new('RGB', (320, 170), BG)
         d = ImageDraw.Draw(img)
         def text(x, y, value, color=TEXT, size=12, bold=False, width=304):
-            value = str(value).replace('\n', ' ')
-            font = self.font(size, bold)
-            while value and d.textlength(value, font=font) > width:
-                value = value[:-2] + '…' if not value.endswith('…') else value[:-2] + '…'
-            d.text((x, y), value, font=font, fill=color)
-        text(9, 2, 'MeshCore', size=12, bold=True)
-        region = self.backend.region if self.backend and self.backend.engine else self.store.get('region','US')
-        text(92, 3, region, ACCENT, 10)
-        ready = self.backend and self.backend.engine
-        d.ellipse((270,6,275,11), fill=ACCENT if ready else '#e7b86e')
-        text(281, 2, time.strftime('%H:%M'), MUTED, 10)
-        d.rectangle((0,20,319,40), fill=PANEL)
+            return self.text.draw(img,(x,y),value,color,size,bold,width)
+        d.rectangle((0,0,319,20), fill=PANEL)
         for i, (x, title) in enumerate([(8,'Chats'),(64,'Join Channel'),(169,'Nodes'),(236,'Settings')]):
             if i == self.menu:
-                d.rounded_rectangle((x-4,22,x + [45,96,57,72][i],39),3, fill=SELECT)
-            text(x,23,title,ACCENT if i==self.menu else MUTED,10,bold=i==self.menu)
+                d.rounded_rectangle((x-4,2,x + [45,96,57,72][i],19),3, fill=SELECT)
+            text(x,3,title,ACCENT if i==self.menu else MUTED,10,bold=i==self.menu)
         hint = 'Tab menu    ↑↓ select    Enter open'
         if self.screen == 'inbox':
             chats = self.store.chats()
             self.selected = min(self.selected, max(0,len(chats)-1))
-            start = max(0,self.selected-2)
-            for i, chat in enumerate(chats[start:start+3],start):
-                y = 43 + (i-start)*35
+            start = max(0,self.selected-3)
+            for i, chat in enumerate(chats[start:start+4],start):
+                y = 23 + (i-start)*32
                 selected = i == self.selected and self.menu < 0
-                d.rounded_rectangle((5,y,314,y+33),4,fill=SELECT if selected else PANEL)
+                d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if selected else PANEL)
                 if selected:
-                    d.rounded_rectangle((5,y+4,7,y+29),1, fill=ACCENT)
-                text(13,y+1,'#' if chat['kind']=='channel' else '@',ACCENT,14,True)
-                text(29,y+1,chat['name'],size=12,bold=True,width=228)
+                    d.rounded_rectangle((5,y+4,7,y+26),1, fill=ACCENT)
+                if chat['kind']=='dm':
+                    text(13,y+1,'@',ACCENT,14,True)
+                left = 29 if chat['kind']=='dm' else 13
+                text(left,y+1,chat['name'],size=12,bold=True,width=270-left)
                 if chat['unread']:
                     text(284,y+1,str(chat['unread']),ACCENT,10,width=25)
                 preview = chat['preview'] or ('Say hello to the mesh' if chat['id']=='public' else 'No messages yet')
                 if chat['status'] in ('failed','unconfirmed','sending','interrupted'):
                     preview = chat['status'].capitalize() + ' · ' + preview
-                text(29,y+17,preview,MUTED,10,width=273)
+                text(left,y+17,preview,MUTED,10,width=302-left)
         elif self.screen in ('join','name'):
-            text(10,47,'Join a hashtag channel' if self.screen=='join' else 'Your node name',size=14,bold=True)
-            text(10,69,'Same hashtag connects everyone.' if self.screen=='join' else 'Shown to other people on the mesh.',MUTED,10)
-            d.rounded_rectangle((8,94,311,119),4,fill=SELECT)
-            text(15,98,(self.draft or ('#asheville' if self.screen=='join' else 'Your name'))+'|',ACCENT,13,width=287)
-            text(10,129,'Hashtag channels are public.' if self.screen=='join' else 'Enter saves your name.',MUTED,10)
+            text(10,27,'Join a hashtag channel' if self.screen=='join' else 'Your node name',size=14,bold=True)
+            text(10,49,'Same hashtag connects everyone.' if self.screen=='join' else 'Shown to other people on the mesh.',MUTED,10)
+            d.rounded_rectangle((8,74,311,99),4,fill=SELECT)
+            text(15,78,(self.draft or ('#asheville' if self.screen=='join' else 'Your name'))+'|',ACCENT,13,width=287)
+            text(10,109,'Hashtag channels are public.' if self.screen=='join' else 'Enter saves your name.',MUTED,10)
             hint = 'Enter save    Esc back'
         elif self.screen == 'nodes':
             nodes = self.nodes()
             if not nodes:
-                text(12,58,'Listening for nodes',size=15,bold=True)
-                text(12,84,'Nearby adverts will appear here.',MUTED,11)
-                text(12,105,'Settings → Announce to introduce yourself.',MUTED,10)
-            for i,node in enumerate(nodes[max(0,self.selected-2):self.selected+3]):
-                absolute = max(0,self.selected-2)+i
-                if i >= 3: break
-                y=44+i*35
-                d.rounded_rectangle((5,y,314,y+33),4,fill=SELECT if absolute==self.selected else PANEL)
+                text(12,38,'Listening for nodes',size=15,bold=True)
+                text(12,64,'Nearby adverts will appear here.',MUTED,11)
+                text(12,85,'Settings → Announce to introduce yourself.',MUTED,10)
+            for i,node in enumerate(nodes[max(0,self.selected-3):self.selected+4]):
+                absolute = max(0,self.selected-3)+i
+                if i >= 4: break
+                y=23+i*32
+                d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if absolute==self.selected else PANEL)
                 text(12,y+1,node.get('name','Unknown'),bold=True,width=290)
                 text(12,y+18,('Chat' if node.get('adv_type')==1 else 'Infrastructure')+' · '+node['public_key'][:12],MUTED,10)
             hint = '↑↓ select    Enter DM    Esc back'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
             for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node']):
-                y=43+i*23
-                d.rounded_rectangle((5,y,314,y+21),4, fill=SELECT if i==self.selected else PANEL)
-                text(12,y+3,label,size=10,width=290)
+                y=23+i*27
+                d.rounded_rectangle((5,y,314,y+25),4, fill=SELECT if i==self.selected else PANEL)
+                text(12,y+5,label,size=11,width=290)
             status = (self.backend.error or self.backend.state) if self.backend else 'Preview · no radio'
             text(10,139,status,MUTED,9,width=300)
             hint='↑↓ select    Enter change    Esc back'
         elif self.screen == 'chat':
-            text(9,43,self.chat['name'],ACCENT,11,True,width=300)
+            text(9,23,self.chat['name'],ACCENT,11,True,width=300)
             history = self.store.history(self.chat['id'])
-            lines=[]
-            for msg in history:
-                prefix = msg['sender'] + (' · '+msg['status'] if msg['sender']=='You' else '')
-                lines.append((prefix,ACCENT if msg['sender']=='You' else MUTED))
-                words = msg['text'].split(' ')
-                line=''
-                for word in words:
-                    for char in word+' ':
-                        if d.textlength(line+char,font=self.font(11)) > 296:
-                            lines.append((line,TEXT)); line=''
-                        line+=char
-                if line: lines.append((line,TEXT))
-            self.scroll=min(self.scroll,max(0,len(lines)-5))
+            lines=self.chat_lines(history)
+            self.scroll=min(self.scroll,max(0,len(lines)-7))
             end=max(0,len(lines)-self.scroll)
-            visible=lines[max(0,end-5):end]
-            for i,(line,color) in enumerate(visible):
-                text(10,60+i*13,line,color,11,width=300)
-            if not history: text(10,78,'Start the conversation.',MUTED,12)
+            visible=lines[max(0,end-7):end]
+            for i,line in enumerate(visible):
+                x=10
+                for value,color in line:
+                    x=text(x,37+i*13,value,color,11,width=310-x)
+            if not history: text(10,58,'Start the conversation.',MUTED,12)
             d.rounded_rectangle((5,130,314,151),4,fill=SELECT)
             # Show the tail while typing, avoiding a hidden caret on long drafts.
-            tail=self.draft
-            while d.textlength(tail,font=self.font(11)) > 287: tail=tail[1:]
+            from .text import units
+            tail=list(units(self.draft))
+            while tail and self.text.width(''.join(p for p,_ in tail),11) > 287: tail.pop(0)
+            tail=''.join(p for p,_ in tail)
             text(11,133,(tail+'|') if self.draft else 'Type a message…',TEXT if self.draft else MUTED,11)
             hint='Enter send    ↑↓ history    Esc back'
             self.store.read(self.chat['id'])

@@ -6,8 +6,9 @@ import struct
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
-from PIL import Image
+from unittest.mock import patch, AsyncMock
+from types import SimpleNamespace
+from PIL import Image, features
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'vendor'))
 from Crypto.Cipher import AES
@@ -17,6 +18,7 @@ from meshcore_zero.store import Store, PUBLIC_KEY, PRESETS, radio_config
 from meshcore_zero.ui import UI
 from meshcore_zero.radio import Backend, configure_mesh_sync
 from meshcore_zero.hardware import Keyboard, Framebuffer
+from meshcore_zero.text import units
 
 
 class StoreTests(unittest.TestCase):
@@ -137,6 +139,50 @@ class StoreTests(unittest.TestCase):
         after=ui.render_key()
         ui.render()
         self.assertEqual(after,ui.render_key())
+
+    def test_compact_chat_uses_local_name_for_legacy_history(self):
+        self.store.set('name','Zero 💨')
+        self.store.add('public','You','Hello',status='sent')
+        self.store.add('public','Ari🪐','Seen')
+        ui=UI(self.store)
+        lines=ui.chat_lines(self.store.history('public'))
+        self.assertEqual([''.join(s for s,_ in row) for row in lines],
+            ['Zero 💨: Hello','Ari🪐: Seen'])
+        self.store.add('public','Zero 💨','Retry me',status='failed')
+        self.assertIn('[failed]',''.join(s for s,_ in ui.chat_lines(self.store.history('public'))[-1]))
+
+    def test_outgoing_history_saves_actual_node_name(self):
+        async def scenario():
+            self.store.join('#testing')
+            notices=[]
+            backend=Backend(self.store,notices.append)
+            backend.engine=SimpleNamespace(is_running=True,
+                prefs=SimpleNamespace(node_name='Zero 💨'),
+                send_channel_message=AsyncMock(return_value=True))
+            backend.channels={'#testing':1}
+            chat=next(c for c in self.store.chats() if c['id']=='#testing')
+            await backend.send(chat,'Hello')
+            saved=self.store.history('#testing')[0]
+            self.assertEqual((saved['sender'],saved['status']),('Zero 💨','sent'))
+            self.assertEqual(notices,[])
+        asyncio.run(scenario())
+
+    def test_color_emoji_clusters_survive_wrapping_and_clipping(self):
+        ui=UI(self.store)
+        name='Zero 👩🏽‍💻🇺🇸💨🪐'
+        self.assertEqual([p for p,emoji in units(name) if emoji],['👩🏽‍💻','🇺🇸','💨','🪐'])
+        rows=ui.text.wrap([(name+': '+('hello '*20),'white')],90,11)
+        for row in rows:
+            self.assertLessEqual(ui.text.width(''.join(p for p,_ in row),11),90)
+        glyph=ui.text.emoji('🪐',12)
+        colors=[(r,g,b) for r,g,b,a in glyph.getdata() if a>128]
+        self.assertTrue(any(max(rgb)-min(rgb)>50 for rgb in colors))
+        if features.check('raqm'):
+            ui.text.emoji('👩🏽‍💻',12)
+            self.assertLessEqual(ui.text.emoji_font.getlength('👩🏽‍💻'),
+                ui.text.emoji_font.getlength('👩')+1)
+        clipped=ui.text.fit('👩🏽‍💻🇺🇸💨🪐',28,11)
+        self.assertEqual(clipped,'👩🏽‍💻…')
 
 
 class FramebufferTests(unittest.TestCase):

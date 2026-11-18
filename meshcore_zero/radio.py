@@ -183,7 +183,7 @@ class Backend:
         async with self.send_lock:
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
-            mid = self.store.add(chat['id'], 'You', text, status='sending')
+            mid = self.store.add(chat['id'], self.engine.prefs.node_name, text, status='sending')
             try:
                 if chat['kind'] == 'channel':
                     ok = await self.engine.send_channel_message(self.channels[chat['id']], text)
@@ -197,7 +197,8 @@ class Backend:
                 cfg = self.config
                 airtime = calculate_lora_airtime_ms(200, cfg['spreading_factor'], cfg['bandwidth'], cfg['coding_rate'], 16)
                 self.next_tx = time.monotonic() + airtime / 1000 * (99 if self.region == 'EU' else 9)
-                self.notify(state.capitalize())
+                if state not in ('sent','delivered'):
+                    self.notify(state.capitalize())
             except BaseException:
                 self.store.status(mid, 'failed')
                 raise

@@ -1,0 +1,3 @@
+#!/bin/sh
+cd /usr/share/meshcore-zero
+exec python3 -m meshcore_zero "$@"

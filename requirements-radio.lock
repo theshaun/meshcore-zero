@@ -1,0 +1,8 @@
+# Frozen runtime for Debian 13 / CPython 3.13 ARM64. Pillow is supplied by apt.
+pycryptodome==4.5.0
+PyNaCl==1.6.2
+PyYAML==6.0.3
+python-periphery==2.5.0
+gpiod==2.6.0
+cffi==2.1.1
+pycparser==3.12

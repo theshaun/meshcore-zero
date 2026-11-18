@@ -1,0 +1,28 @@
+name: Verify and package
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Protocol and client tests
+        run: python -m unittest discover -s tests -v
+      - name: Build ARM64 Debian package
+        run: python scripts/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meshcore-zero-arm64
+          path: dist/*.deb
+          retention-days: 90

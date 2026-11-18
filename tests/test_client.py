@@ -46,6 +46,24 @@ class StoreTests(unittest.TestCase):
         for value in ('', '#', 'with spaces', 'a'*31, '#hello/there'):
             with self.assertRaises(ValueError): self.store.join(value)
 
+    def test_optional_or_repeated_hashtags_join_the_same_channel(self):
+        for name in ('testing','#testing','##testing','###TESTING'):
+            self.assertEqual(self.store.join(name),'#testing')
+        self.assertEqual(len(self.store.chats()),2)
+
+    def test_join_field_prefills_and_keeps_one_hashtag(self):
+        async def scenario():
+            ui=UI(self.store)
+            await ui.key('tab');await ui.key('tab');await ui.key('enter')
+            self.assertEqual(ui.draft,'#')
+            await ui.key('backspace')
+            self.assertEqual(ui.draft,'#')
+            for char in '##testing': await ui.key(char)
+            self.assertEqual(ui.draft,'#testing')
+            await ui.key('enter')
+            self.assertEqual(ui.chat['id'],'#testing')
+        asyncio.run(scenario())
+
     def test_cardputer_symbol_layer_and_navigation(self):
         keyboard=Keyboard.__new__(Keyboard)
         keyboard.shift=set()
@@ -128,6 +146,39 @@ class FramebufferTests(unittest.TestCase):
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_testing_reply_wire_packet_reaches_history_and_inbox(self):
+        # Build the packet independently of openHop's encoder, using the
+        # MeshCore wire format and hashtag key derivation.
+        with tempfile.TemporaryDirectory() as directory:
+            store=Store(directory)
+            try:
+                store.join('#testing')
+                backend=Backend(store)
+                backend.engine=CompanionRadio(None,LocalIdentity(),node_name='Zero')
+                backend.sync_channels()
+                backend.engine.on_channel_message_event(backend.channel_message)
+                secret=hashlib.sha256(b'#testing').digest()[:16]
+                body=struct.pack('<I',1795044000)+b'\x00Other node: Seen 2'
+                body+=b'\x00'*(-len(body)%16)
+                ciphertext=AES.new(secret,AES.MODE_ECB).encrypt(body)
+                payload=hashlib.sha256(secret).digest()[:1]+hmac.digest(secret,ciphertext,'sha256')[:2]+ciphertext
+                wire=b'\x15\x00'+payload  # flooded group text, zero-hop path
+                ui=UI(store,backend)
+                before=ui.render_key()
+                await backend.engine.node.dispatcher._process_received_packet(wire,-60,9.0)
+                self.assertNotEqual(before,ui.render_key())
+                history=store.history('#testing')
+                self.assertEqual(len(history),1)
+                self.assertEqual((history[0]['sender'],history[0]['text']),('Other node','Seen 2'))
+                self.assertEqual(store.chats()[0]['id'],'#testing')
+                self.assertEqual(store.chats()[0]['unread'],1)
+                self.assertEqual(store.history('public'),[])
+                # Repeated flood copies are retained only once.
+                await backend.engine.node.dispatcher._process_received_packet(wire,-62,8.0)
+                self.assertEqual(len(store.history('#testing')),1)
+            finally:
+                store.db.close()
+
     async def test_radio_sync_readback_rejects_wrong_configuration(self):
         class Chip:
             STANDBY_RC=0; RX_CONTINUOUS=0xffffff

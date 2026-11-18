@@ -83,7 +83,7 @@ class UI:
                 self.menu = (self.menu + (1 if key == 'right' else -1)) % 4
             if key == 'enter':
                 self.screen = ['inbox', 'join', 'nodes', 'settings'][self.menu]
-                self.menu, self.selected, self.draft = -1, 0, ''
+                self.menu, self.selected, self.draft = -1, 0, '#' if self.screen == 'join' else ''
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
             count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 3
@@ -115,7 +115,7 @@ class UI:
             self.scroll = max(0, self.scroll + (1 if key == 'up' else -1))
             return
         if key == 'backspace':
-            self.draft = self.draft[:-1]
+            self.draft = self.draft[:-1] if self.screen != 'join' or len(self.draft) > 1 else '#'
         elif key == 'enter':
             try:
                 if self.screen == 'join':
@@ -140,6 +140,8 @@ class UI:
             except (ValueError, RuntimeError) as exc:
                 self.notice(str(exc))
         elif len(key) == 1 and key.isprintable():
+            if self.screen == 'join' and key == '#' and self.draft == '#':
+                return
             limit = 150 if self.screen == 'chat' else 31
             if len((self.draft + key).encode()) <= limit:
                 self.draft += key

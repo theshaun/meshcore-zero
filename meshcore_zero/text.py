@@ -53,8 +53,12 @@ class Text:
         self.emoji_font = None
 
     def width(self, value, size=12, bold=False):
-        return sum(size + 1 if emoji else self.font(size, bold).getlength(part)
+        return sum(self.advance(part,emoji,size,bold)
                    for part, emoji in units(str(value)))
+
+    @lru_cache(maxsize=4096)
+    def advance(self, part, emoji, size=12, bold=False):
+        return size+1 if emoji else self.font(size,bold).getlength(part)
 
     @lru_cache(maxsize=256)
     def emoji(self, value, size):
@@ -86,18 +90,34 @@ class Text:
             value = self.fit(value,width,size,bold)
         x,y = xy
         draw = ImageDraw.Draw(image)
+        normal=[]
+        font=self.font(size,bold)
+        options={'features':['-kern']} if font.layout_engine == ImageFont.Layout.RAQM else {}
+        def flush():
+            nonlocal x
+            if normal:
+                # Shape/rasterize each contiguous text run once, rather than
+                # invoking FreeType separately for every letter.
+                draw.text((round(x),y),''.join(normal),font=font,fill=fill,**options)
+                x += sum(self.advance(p,False,size,bold) for p in normal)
+                normal.clear()
         for part, emoji in units(value):
             if emoji:
+                flush()
                 glyph = self.emoji(part,size)
                 image.paste(glyph,(round(x),round(y+1)),glyph)
                 x += size+1
             else:
-                draw.text((round(x),y),part,font=self.font(size,bold),fill=fill)
-                x += self.font(size,bold).getlength(part)
+                normal.append(part)
+        flush()
         return x
 
     def wrap(self, spans, width, size=11):
         """Wrap colored spans into compact rows without splitting emoji clusters."""
+        return self._wrap(tuple(spans),width,size)
+
+    @lru_cache(maxsize=512)
+    def _wrap(self, spans, width, size):
         rows = [[]]
         used = 0
         for value,color in spans:
@@ -107,7 +127,7 @@ class Text:
                     rows.append([])
                     used = 0
                 for part,emoji in units(token):
-                    advance = size+1 if emoji else self.font(size).getlength(part)
+                    advance = self.advance(part,emoji,size,False)
                     if part == '\n' or (used+advance > width and rows[-1]):
                         rows.append([])
                         used = 0
@@ -119,4 +139,4 @@ class Text:
                     else:
                         rows[-1].append((part,color))
                     used += advance
-        return rows
+        return tuple(tuple(row) for row in rows)

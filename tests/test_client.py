@@ -13,7 +13,8 @@ from openhop_core import LocalIdentity, CompanionRadio
 from openhop_core.protocol.packet_builder import PacketBuilder
 from meshcore_zero.store import Store, PUBLIC_KEY, PRESETS
 from meshcore_zero.ui import UI
-from meshcore_zero.radio import Backend
+from meshcore_zero.radio import Backend, configure_mesh_sync
+from meshcore_zero.hardware import Keyboard
 
 
 class StoreTests(unittest.TestCase):
@@ -42,6 +43,16 @@ class StoreTests(unittest.TestCase):
     def test_invalid_channel_names(self):
         for value in ('', '#', 'with spaces', 'a'*31, '#hello/there'):
             with self.assertRaises(ValueError): self.store.join(value)
+
+    def test_cardputer_symbol_layer_and_navigation(self):
+        keyboard=Keyboard.__new__(Keyboard)
+        keyboard.shift=set()
+        for code,char in ((39,'#'),(71,'-'),(70,'_'),(91,'.'),(28,'enter'),(15,'tab'),(103,'up')):
+            self.assertEqual(keyboard.translate(1,code,1),char)
+        keyboard.translate(1,42,1)
+        self.assertEqual(keyboard.translate(1,30,1),'A')
+        keyboard.translate(1,42,0)
+        self.assertEqual(keyboard.translate(1,30,1),'a')
 
     def test_interrupted_send_is_not_left_sending(self):
         self.store.add('public','You','pending',status='sending')
@@ -74,6 +85,20 @@ class StoreTests(unittest.TestCase):
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_radio_sync_readback_rejects_wrong_configuration(self):
+        class Chip:
+            STANDBY_RC=0; RX_CONTINUOUS=0xffffff
+            def setStandby(self,value): pass
+            def writeRegister(self,address,data,size): self.data=data
+            def readRegister(self,address,size): return self.data
+            def request(self,value): self.receiving=True
+        chip=Chip()
+        configure_mesh_sync(chip)
+        self.assertEqual(chip.data,(0x14,0x24))
+        self.assertTrue(chip.receiving)
+        chip.readRegister=lambda address,size:(0,0)
+        with self.assertRaises(RuntimeError): configure_mesh_sync(chip)
+
     async def test_group_payload_matches_firmware_crypto(self):
         # Independent wire decoder: timestamp LE, plain flags, zero padding,
         # AES-128 ECB and the first 2 bytes of HMAC-SHA256 with the raw PSK.

@@ -60,7 +60,7 @@ Description: Standalone MeshCore client for Cardputer Zero and LoRa CAP
 ''')
     out=ROOT/'dist'/f"meshcore-zero_{config['version']}_arm64.deb"
     out.parent.mkdir(exist_ok=True)
-    subprocess.run(['dpkg-deb','--root-owner-group','--build',str(stage),str(out)],check=True)
+    subprocess.run(['dpkg-deb','-Zgzip','-z6','--root-owner-group','--build',str(stage),str(out)],check=True)
     print(out)
 
 

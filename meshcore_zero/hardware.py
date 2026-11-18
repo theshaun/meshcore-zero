@@ -42,6 +42,10 @@ class Keyboard:
     CHARS.update(dict(zip(range(44,54),'zxcvbnm,./')))
     CHARS.update({43:'\\',57:' '})
     SHIFT=dict(zip("1234567890-=[];'`,./\\",'!@#$%^&*()_+{}:"~<>?|'))
+    # The Zero's Sym layer emits custom Linux codes, rather than a US layout.
+    SYMBOLS=dict(zip(
+        (26,27,39,40,41,43,51,52,53,94,55,69,70,71,72,73,74,75,76,77,79,80,81,82,83,85,86,89,90,91,92,93),
+        '!@#$%^&*()~`_-+=[]{};:\'"<>\\|,./?'))
 
     def __init__(self):
         self.fd=None
@@ -51,7 +55,9 @@ class Keyboard:
                 break
         if self.fd is None: raise RuntimeError('Cardputer keyboard not found')
         # Prevent keys leaking into launcher while the client owns the screen.
-        fcntl.ioctl(self.fd,0x40044590,1)
+        self.grabbed = not os.getenv('APPLAUNCH_LINUX_KEYBOARD_DEVICE')
+        if self.grabbed:
+            fcntl.ioctl(self.fd,0x40044590,1)
         self.shift=set()
         self.buffer=b''
 
@@ -63,17 +69,23 @@ class Keyboard:
         while len(self.buffer)>=size:
             _,_,kind,code,value=struct.unpack('llHHi',self.buffer[:size])
             self.buffer=self.buffer[size:]
-            if kind!=1: continue
-            if code in (42,54):
-                self.shift.add(code) if value else self.shift.discard(code)
-                continue
-            if value not in (1,2): continue
-            if code in self.SPECIAL: result.append(self.SPECIAL[code])
-            elif code in self.CHARS:
-                char=self.CHARS[code]
-                result.append(self.SHIFT.get(char,char.upper()) if self.shift else char)
+            key=self.translate(kind,code,value)
+            if key is not None: result.append(key)
         return result
 
+    def translate(self,kind,code,value):
+        if kind!=1: return None
+        if code in (42,54):
+            self.shift.add(code) if value else self.shift.discard(code)
+            return None
+        if value not in (1,2): return None
+        if code in self.SYMBOLS: return self.SYMBOLS[code]
+        if code in self.SPECIAL: return self.SPECIAL[code]
+        if code in self.CHARS:
+            char=self.CHARS[code]
+            return self.SHIFT.get(char,char.upper()) if self.shift else char
+        return None
+
     def close(self):
-        fcntl.ioctl(self.fd,0x40044590,0)
+        if self.grabbed: fcntl.ioctl(self.fd,0x40044590,0)
         os.close(self.fd)

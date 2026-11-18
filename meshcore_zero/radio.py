@@ -16,6 +16,16 @@ from .store import PRESETS
 log = logging.getLogger(__name__)
 
 
+def configure_mesh_sync(chip):
+    # The vendored wrapper accepts sync_word but does not program it. Set and
+    # read back the SX1262 private-network sync bytes used by MeshCore.
+    chip.setStandby(chip.STANDBY_RC)
+    chip.writeRegister(0x0740, (0x14, 0x24), 2)
+    if tuple(chip.readRegister(0x0740, 2)) != (0x14, 0x24):
+        raise RuntimeError('SX1262 sync word readback failed')
+    chip.request(chip.RX_CONTINUOUS)
+
+
 class CapPower:
     def __init__(self):
         self.saved = []
@@ -100,6 +110,7 @@ class Backend:
                 use_dio2_rf=True, use_dio3_tcxo=True, dio3_tcxo_voltage=3.0, **cfg)
             if not self.radio.begin():
                 raise RuntimeError('SX1262 initialization failed; check CAP seating')
+            configure_mesh_sync(self.radio.lora)
             seed = self.store.get('identity')
             if seed is None:
                 identity = LocalIdentity()

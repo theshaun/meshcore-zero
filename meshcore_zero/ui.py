@@ -1,6 +1,7 @@
 """Small-screen UI, independent of hardware so every screen can be rendered in CI."""
 import time
 from PIL import Image, ImageDraw, ImageFont
+from .store import radio_config
 
 BG = '#101d29'
 PANEL = '#172938'
@@ -86,7 +87,7 @@ class UI:
                 self.menu, self.selected, self.draft = -1, 0, '#' if self.screen == 'join' else ''
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 3
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 4
             if key in ('up', 'down'):
                 self.selected = max(0, min(max(0, count - 1), self.selected + (1 if key == 'down' else -1)))
             elif key == 'enter':
@@ -104,6 +105,11 @@ class UI:
                         self.store.set('region', 'EU' if self.store.get('region', 'US') == 'US' else 'US')
                         self.notice('Region saved · restart app to apply')
                     elif self.selected == 1:
+                        region = self.store.get('region', 'US')
+                        coding_rate = radio_config(self.store, region)['coding_rate']
+                        self.store.set('coding_rate_' + region, 5 if coding_rate == 8 else coding_rate + 1)
+                        self.notice('Coding rate saved · restart to apply')
+                    elif self.selected == 2:
                         self.screen, self.draft = 'name', self.store.get('name', 'MeshCore Zero')
                     elif self.backend and self.backend.engine:
                         try:
@@ -230,12 +236,13 @@ class UI:
                 text(12,y+18,('Chat' if node.get('adv_type')==1 else 'Infrastructure')+' · '+node['public_key'][:12],MUTED,10)
             hint = '↑↓ select    Enter DM    Esc back'
         elif self.screen == 'settings':
-            for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node']):
-                y=44+i*30
-                d.rounded_rectangle((5,y,314,y+28),4, fill=SELECT if i==self.selected else PANEL)
-                text(12,y+6,label,size=11,width=290)
+            cr = radio_config(self.store)['coding_rate']
+            for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node']):
+                y=43+i*23
+                d.rounded_rectangle((5,y,314,y+21),4, fill=SELECT if i==self.selected else PANEL)
+                text(12,y+3,label,size=10,width=290)
             status = (self.backend.error or self.backend.state) if self.backend else 'Preview · no radio'
-            text(10,137,status,MUTED,9,width=300)
+            text(10,139,status,MUTED,9,width=300)
             hint='↑↓ select    Enter change    Esc back'
         elif self.screen == 'chat':
             text(9,43,self.chat['name'],ACCENT,11,True,width=300)

@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import time
 
-from .store import PRESETS
+from .store import radio_config
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +92,7 @@ class Backend:
         self.send_lock = asyncio.Lock()
         self.next_tx = 0
         self.region = store.get('region', 'US')
+        self.config = radio_config(store, self.region)
 
     async def start(self):
         from openhop_core import CompanionRadio, LocalIdentity
@@ -102,7 +103,8 @@ class Backend:
             self.power.start()
             region = self.store.get('region', 'US')
             self.region = region
-            cfg = dict(PRESETS[region])
+            cfg = radio_config(self.store, region)
+            self.config = cfg
             self.radio = SX1262Radio(bus_id=0, cs_id=1, cs_pin=-1,
                 gpio_chip=0, use_gpiod_backend=True, reset_pin=26,
                 busy_pin=22, irq_pin=23, txen_pin=-1,
@@ -128,6 +130,9 @@ class Backend:
             self.engine.on_advert_received(self.advert)
             await self.engine.start()
             self.state = region + ' · Radio ready'
+            log.info('Radio active: %.3f MHz, %.1f kHz, SF%d, CR4/%d, %d dBm',
+                cfg['frequency']/1e6, cfg['bandwidth']/1e3,
+                cfg['spreading_factor'], cfg['coding_rate'], cfg['tx_power'])
         except Exception as exc:
             log.exception('Radio startup')
             self.error = str(exc)
@@ -189,7 +194,7 @@ class Backend:
                 self.store.status(mid, state)
                 # Conservative per-transmission 1% airtime pacing in EU, 10% US.
                 from openhop_core.protocol.packet_utils import calculate_lora_airtime_ms
-                cfg = PRESETS[self.region]
+                cfg = self.config
                 airtime = calculate_lora_airtime_ms(200, cfg['spreading_factor'], cfg['bandwidth'], cfg['coding_rate'], 16)
                 self.next_tx = time.monotonic() + airtime / 1000 * (99 if self.region == 'EU' else 9)
                 self.notify(state.capitalize())

@@ -13,6 +13,16 @@ PRESETS = {
 }
 
 
+def radio_config(store, region=None):
+    region = region or store.get('region', 'US')
+    config = dict(PRESETS[region])
+    coding_rate = int(store.get('coding_rate_' + region, config['coding_rate']))
+    if coding_rate not in (5, 6, 7, 8):
+        raise ValueError('Coding rate must be 4/5, 4/6, 4/7 or 4/8')
+    config['coding_rate'] = coding_rate
+    return config
+
+
 class Store:
     def __init__(self, directory):
         directory = Path(directory)

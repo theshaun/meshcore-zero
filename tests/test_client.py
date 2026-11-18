@@ -13,7 +13,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'vendor'))
 from Crypto.Cipher import AES
 from openhop_core import LocalIdentity, CompanionRadio
 from openhop_core.protocol.packet_builder import PacketBuilder
-from meshcore_zero.store import Store, PUBLIC_KEY, PRESETS
+from meshcore_zero.store import Store, PUBLIC_KEY, PRESETS, radio_config
 from meshcore_zero.ui import UI
 from meshcore_zero.radio import Backend, configure_mesh_sync
 from meshcore_zero.hardware import Keyboard, Framebuffer
@@ -45,6 +45,28 @@ class StoreTests(unittest.TestCase):
     def test_invalid_channel_names(self):
         for value in ('', '#', 'with spaces', 'a'*31, '#hello/there'):
             with self.assertRaises(ValueError): self.store.join(value)
+
+    def test_coding_rate_override_is_regional_and_active_config_is_stable(self):
+        self.store.set('coding_rate_US',8)
+        self.assertEqual(radio_config(self.store)['coding_rate'],8)
+        self.assertEqual(radio_config(self.store,'EU')['coding_rate'],5)
+        backend=Backend(self.store)
+        self.store.set('coding_rate_US',6)
+        self.assertEqual(backend.config['coding_rate'],8)
+        self.assertEqual(radio_config(self.store)['coding_rate'],6)
+        self.store.set('coding_rate_US',9)
+        with self.assertRaises(ValueError): radio_config(self.store)
+
+    def test_settings_cycles_coding_rate_without_changing_region(self):
+        async def scenario():
+            ui=UI(self.store)
+            ui.screen='settings'; ui.selected=1
+            for expected in (6,7,8,5):
+                await ui.key('enter')
+                self.assertEqual(radio_config(self.store)['coding_rate'],expected)
+            self.assertEqual(self.store.get('region','US'),'US')
+            self.assertEqual(ui.render().size,(320,170))
+        asyncio.run(scenario())
 
     def test_optional_or_repeated_hashtags_join_the_same_channel(self):
         for name in ('testing','#testing','##testing','###TESTING'):

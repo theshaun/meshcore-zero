@@ -6,3 +6,8 @@ dist/
 *.sqlite*
 *.log
 .DS_Store
+.env
+.env.*
+*.pem
+*.key
+*.bundle

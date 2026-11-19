@@ -42,6 +42,10 @@ async def run(args):
         loop.add_reader(keyboard.fd,input_ready.set)
         fb.write(ui.render())  # Show the inbox before starting the radio.
         startup=asyncio.create_task(backend.start())
+        from .battery import monitor
+        battery_task=asyncio.create_task(monitor(ui))
+        ui.tasks.add(battery_task)
+        battery_task.add_done_callback(ui.tasks.discard)
         previous=None
         started=loop.time()
         while ui.running and (not args.duration or loop.time()-started<args.duration):

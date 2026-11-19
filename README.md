@@ -44,12 +44,12 @@ your local identity, channels, and messages.
 
 ## Using MeshCore
 
-- **Tab** cycles through Chats, Join Channel, Nodes, and Settings; **Enter** opens.
+- **Tab** cycles through Chats, Join, Nodes, and Settings; **Enter** opens.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
 - Type in a conversation and press **Enter** to send.
 - **Escape** returns to Chats; Escape again exits to the launcher.
-- **Join Channel** opens with `#` already entered. Type the channel name;
+- **Join** opens with `#` already entered. Type the channel name;
   entering another leading `#` is harmless.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Infrastructure nodes remain visible in the list.

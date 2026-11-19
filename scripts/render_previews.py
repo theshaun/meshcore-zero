@@ -29,6 +29,7 @@ def main():
                 store.bind_tx(mid,'synthetic-preview')
                 store.heard('synthetic-preview',1)
         ui=UI(store)
+        ui.battery=75
         (ROOT/'screenshots').mkdir(exist_ok=True)
         ui.render().save(ROOT/'screenshots/inbox.png')
         ui.open_chat(next(c for c in store.chats() if c['id']=='#testing'))

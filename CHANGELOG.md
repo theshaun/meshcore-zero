@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.11 — 2026-11-18
+
+- Compact, centered Chats / Join / Nodes / Settings tabs with the current section highlighted.
+- Show a fuel-gauge battery icon at the top right, without percentage text.
+- Poll battery state away from keyboard handling to keep typing responsive.
+- Remove the grey/no-echo legend from the chat footer.
+
+
 ## 0.1.10 — 2026-11-18
 
 - Scrollable regional radio picker with experimental Japan and additional community presets.

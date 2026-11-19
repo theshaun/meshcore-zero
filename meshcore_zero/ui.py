@@ -39,6 +39,7 @@ class UI:
         self.update_message = ''
         self.password = ''
         self.restart_requested = False
+        self.battery = None
 
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
@@ -48,7 +49,7 @@ class UI:
         return (self.store.db.total_changes, self.screen, self.menu, self.selected,
             self.chat['id'] if self.chat else None, self.draft if include_draft else None, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
-            self.update_state, self.update_message, len(self.password),
+            self.update_state, self.update_message, len(self.password), self.battery,
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -281,11 +282,7 @@ class UI:
         d = ImageDraw.Draw(img)
         def text(x, y, value, color=TEXT, size=12, bold=False, width=304):
             return self.text.draw(img,(x,y),value,color,size,bold,width)
-        d.rectangle((0,0,319,20), fill=PANEL)
-        for i, (x, title) in enumerate([(8,'Chats'),(64,'Join Channel'),(169,'Nodes'),(236,'Settings')]):
-            if i == self.menu:
-                d.rounded_rectangle((x-4,2,x + [45,96,57,72][i],19),3, fill=SELECT)
-            text(x,3,title,ACCENT if i==self.menu else MUTED,10,bold=i==self.menu)
+        self.draw_tabs(img)
         hint = 'Tab menu    ↑↓ select    Enter open'
         if self.screen == 'inbox':
             chats = self.store.chats()
@@ -377,7 +374,7 @@ class UI:
                         x=text(x,37+i*13,value,color,11,width=310-x)
             if not history: text(10,58,'Start the conversation.',MUTED,12)
             self.draw_composer(img)
-            hint='Enter send  ↑↓ history   Grey: no echo   Esc back'
+            hint='Enter send    ↑↓ history    Esc back'
             self.store.read(self.chat['id'])
         d.rectangle((0,154,319,169),fill=BG)
         text(8,157,hint,MUTED,9)
@@ -386,6 +383,34 @@ class UI:
             self._chat_cache_key=self.render_key(False)
             self._chat_cache=img.copy()
         return img
+
+    def active_tab(self):
+        if self.screen in ('inbox','chat'): return 0
+        if self.screen == 'join': return 1
+        if self.screen == 'nodes': return 2
+        return 3
+
+    def draw_tabs(self,img):
+        d=ImageDraw.Draw(img)
+        d.rectangle((0,0,319,20),fill=PANEL)
+        active=self.active_tab()
+        for i,title in enumerate(('Chats','Join','Nodes','Settings')):
+            left=i*72
+            selected=i==active
+            bounds=(left+3,2,left+68,18)
+            if selected: d.rounded_rectangle(bounds,3,fill=SELECT)
+            if i==self.menu: d.rounded_rectangle(bounds,3,outline=ACCENT)
+            width=self.text.width(title,10,selected)
+            self.text.draw(img,(left+(72-width)/2,3),title,
+                ACCENT if selected else MUTED,10,selected,width=66)
+        # Fuel-gauge capacity only: never infer a charge level from voltage.
+        d.rounded_rectangle((296,5,315,15),2,outline=MUTED)
+        d.rectangle((316,8,317,12),fill=MUTED)
+        if self.battery is None:
+            d.line((303,10,308,10),fill=MUTED)
+        else:
+            fill=round(16*max(0,min(100,self.battery))/100)
+            if fill: d.rectangle((298,7,297+fill,13),fill=TEXT)
 
     def draw_composer(self,img):
         from .text import units

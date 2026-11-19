@@ -28,6 +28,9 @@ def main():
     for name in ('meshcore_zero','vendor','assets'):
         shutil.copytree(ROOT/name,app/name,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(runtime,app/'runtime',ignore=shutil.ignore_patterns('__pycache__','*.pyc','.complete'))
+    entry=app/'runtime/bin/cffi-gen-src'
+    if entry.exists():
+        entry.write_bytes(b'#!/usr/bin/env python3\n'+entry.read_bytes().split(b'\n',1)[1])
     shutil.copy2(ROOT/'LICENSE',app/'LICENSE')
     shutil.copy2(ROOT/'THIRD_PARTY_NOTICES.md',app/'THIRD_PARTY_NOTICES.md')
     def write(path,text,mode=0o644):

@@ -10,6 +10,8 @@ MUTED = '#8ba7b9'
 TEXT = '#e8f3f9'
 ACCENT = '#69dfca'
 SELECT = '#254c65'
+GREEN = '#4de27a'
+RED = '#f16b73'
 
 
 class UI:
@@ -30,6 +32,12 @@ class UI:
         self.text = Text(self.font)
         self._chat_cache_key = None
         self._chat_cache = None
+        from .update import Updater
+        self.updater = Updater()
+        self.update_state = 'idle'
+        self.update_message = ''
+        self.password = ''
+        self.restart_requested = False
 
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
@@ -39,6 +47,7 @@ class UI:
         return (self.store.db.total_changes, self.screen, self.menu, self.selected,
             self.chat['id'] if self.chat else None, self.draft if include_draft else None, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
+            self.update_state, self.update_message, len(self.password),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -83,18 +92,57 @@ class UI:
             body = msg['text']
             if msg['status'] in ('failed','unconfirmed','interrupted'):
                 body += ' ['+msg['status']+']'
-            marker=''
+            spans=[(name+': ',ACCENT if outgoing else MUTED),(body,TEXT)]
             if outgoing:
-                if msg.get('heard_at'):
-                    marker='● '
-                elif msg['status']=='delivered':
-                    marker='✓ '
-                elif msg['status']=='sent':
-                    marker='○ '
-            lines.extend(self.text.wrap([(marker+name+': ',ACCENT if outgoing else MUTED),(body,TEXT)],300,11))
+                color=GREEN if msg.get('heard_at') or msg['status']=='delivered' else RED
+                spans.insert(0,('● ',color))
+            lines.extend(self.text.wrap(spans,300,11))
         return lines
 
+    async def update_work(self, action):
+        import asyncio
+        self.update_state = 'busy'
+        self.update_message = {'check':'Checking GitHub…','download':'Downloading and verifying…','install':'Installing. Keep power connected.'}[action]
+        try:
+            if action == 'check':
+                available = await asyncio.to_thread(self.updater.check)
+                self.update_state = 'available' if available else 'current'
+                self.update_message = ('Available: '+self.updater.release[0]) if available else 'You have the latest version.'
+            elif action == 'download':
+                await asyncio.to_thread(self.updater.download)
+                self.update_state = 'password'
+                self.update_message = 'Device sudo password (blank if none):'
+            else:
+                password, self.password = self.password, ''
+                await self.updater.install(password)
+                password = ''
+                self.restart_requested = True
+                self.running = False
+        except Exception:
+            self.password = ''
+            self.update_state = 'error'
+            self.update_message = 'Update failed. Check network / password.'
+
+    def start_update(self, action):
+        import asyncio
+        self.update_state = 'busy'
+        task=asyncio.create_task(self.update_work(action))
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+
     async def key(self, key):
+        if self.screen == 'update':
+            if self.update_state == 'busy': return
+            if key in ('escape','tab'):
+                self.password = ''
+                self.updater.cleanup()
+                self.screen, self.selected = 'settings', 4
+            elif key == 'enter':
+                self.start_update('download' if self.update_state=='available' else 'install' if self.update_state=='password' else 'check')
+            elif self.update_state == 'password':
+                if key == 'backspace': self.password=self.password[:-1]
+                elif len(key)==1 and key.isprintable() and len(self.password)<128: self.password+=key
+            return
         if key == 'tab':
             if self.screen == 'chat':
                 self.drafts[self.chat['id']] = self.draft
@@ -117,7 +165,7 @@ class UI:
                 self.menu, self.selected, self.draft = -1, 0, '#' if self.screen == 'join' else ''
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 4
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 5
             if key in ('up', 'down'):
                 self.selected = max(0, min(max(0, count - 1), self.selected + (1 if key == 'down' else -1)))
             elif key == 'enter':
@@ -141,6 +189,9 @@ class UI:
                         self.notice('Coding rate saved · restart to apply')
                     elif self.selected == 2:
                         self.screen, self.draft = 'name', self.store.get('name', 'MeshCore Zero')
+                    elif self.selected == 4:
+                        self.screen = 'update'
+                        self.start_update('check')
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
@@ -264,13 +315,24 @@ class UI:
             hint = '↑↓ select    Enter DM    Esc back'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node']):
-                y=23+i*27
-                d.rounded_rectangle((5,y,314,y+25),4, fill=SELECT if i==self.selected else PANEL)
-                text(12,y+5,label,size=11,width=290)
+            for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app']):
+                y=23+i*22
+                d.rounded_rectangle((5,y,314,y+20),4, fill=SELECT if i==self.selected else PANEL)
+                text(12,y+3,label,size=11,width=290)
             status = (self.backend.error or self.backend.state) if self.backend else 'Preview · no radio'
             text(10,139,status,MUTED,9,width=300)
             hint='↑↓ select    Enter change    Esc back'
+        elif self.screen == 'update':
+            from . import __version__
+            text(10,29,'App update',size=14,bold=True)
+            text(10,54,'Installed: '+__version__,MUTED,11)
+            text(10,76,self.update_message,size=11,width=300)
+            if self.update_state == 'password':
+                d.rounded_rectangle((8,99,311,123),4,fill=SELECT)
+                text(14,103,'*'*min(35,len(self.password))+'|',ACCENT,12,width=290)
+            hint = ('Enter download   Esc back' if self.update_state=='available' else
+                    'Enter install   Esc back' if self.update_state=='password' else
+                    'Please wait…' if self.update_state=='busy' else 'Enter check again   Esc back')
         elif self.screen == 'chat':
             text(9,23,self.chat['name'],ACCENT,11,True,width=300)
             history = self.store.history(self.chat['id'])
@@ -281,10 +343,14 @@ class UI:
             for i,line in enumerate(visible):
                 x=10
                 for value,color in line:
-                    x=text(x,37+i*13,value,color,11,width=310-x)
+                    if value=='● ' and color in (GREEN,RED):
+                        d.ellipse((x+1,42+i*13,x+4,45+i*13),fill=color)
+                        x+=self.text.width(value,11)
+                    else:
+                        x=text(x,37+i*13,value,color,11,width=310-x)
             if not history: text(10,58,'Start the conversation.',MUTED,12)
             self.draw_composer(img)
-            hint='Enter send  ↑↓ history  ○ sent ● heard  Esc back'
+            hint='Enter send  ↑↓ history   Red: no echo   Esc back'
             self.store.read(self.chat['id'])
         d.rectangle((0,154,319,169),fill=BG)
         text(8,157,hint,MUTED,9)

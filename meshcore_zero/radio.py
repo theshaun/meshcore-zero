@@ -180,8 +180,6 @@ class Backend:
             if packet.get_payload_type()!=5 or packet.get_route_type() not in (0,1):
                 return
             hops=packet.get_path_hash_count()
-            if hops < 1:
-                return
         except (ValueError,IndexError,TypeError):
             return
         # Full payload hash excludes the mutable route, so it matches only

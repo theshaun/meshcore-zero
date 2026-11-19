@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 — 2026-11-18
+
+- Small green/red message indicators; recognize matching zero-hop radio echoes.
+- Settings updater downloads and verifies GitHub releases and preserves local data.
+- Public installation instructions using curl or wget directly on the device.
+- Remove device-specific details from documentation, fixtures, build paths, and history.
+
+
 ## 0.1.7 — 2026-11-18
 
 - Faster typing through vectorized pixel conversion, partial screen updates,

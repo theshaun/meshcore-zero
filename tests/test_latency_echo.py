@@ -125,11 +125,11 @@ class EchoTests(unittest.IsolatedAsyncioTestCase):
         mid=self.store.add('#testing','Zero','Echo test',status='sending')
         self.backend._outgoing_mid=mid
         self.backend._outgoing_started=time.monotonic()
-        self.backend.radio_received(packet.write_to())  # Local/zero-hop copy is insufficient.
+        self.backend.radio_received(packet.write_to())  # A matching zero-hop packet received over RF is also evidence.
         self.backend.radio_received(self.echoed(self.packet('Other packet')))
         self.backend.radio_received(b'')
         await self.engine.node.dispatcher.packet_sent_callback(packet)
-        self.assertIsNone(self.store.history('#testing')[0]['heard_at'])
+        self.assertIsNotNone(self.store.history('#testing')[0]['heard_at'])
         # A returned packet can beat the TX-completion callback.
         self.backend.radio_received(self.echoed(packet))
         self.assertIsNotNone(self.store.history('#testing')[0]['heard_at'])

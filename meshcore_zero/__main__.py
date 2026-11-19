@@ -66,6 +66,9 @@ async def run(args):
             keyboard.close()
         if fb: fb.close()
         store.db.close()
+        ui.updater.cleanup()
+    if ui.restart_requested:
+        os.execv('/usr/share/APPLaunch/bin/meshcore-zero',['meshcore-zero'])
 
 
 def main():

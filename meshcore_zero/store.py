@@ -101,7 +101,7 @@ class Store:
             self.db.execute("UPDATE messages SET tx_hash=?,status='sent' WHERE id=?",(packet_hash,mid))
 
     def heard(self, packet_hash, hops):
-        if hops < 1:
+        if hops < 0:
             return False
         with self.db:
             cur=self.db.execute("""UPDATE messages SET heard_at=?,heard_hops=?

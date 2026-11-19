@@ -20,14 +20,14 @@ included, but EU over-the-air validation is still pending.
 SSH into your Cardputer Zero, then run:
 
 ```sh
-curl -fL https://github.com/unagisan69/meshcore-zero/releases/download/v0.1.7/meshcore-zero_0.1.7_arm64.deb -o /tmp/meshcore-zero.deb
+curl -fL https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb -o /tmp/meshcore-zero.deb
 sudo apt install /tmp/meshcore-zero.deb
 ```
 
 If you prefer `wget`, use it for the download instead:
 
 ```sh
-wget -O /tmp/meshcore-zero.deb https://github.com/unagisan69/meshcore-zero/releases/download/v0.1.7/meshcore-zero_0.1.7_arm64.deb
+wget -O /tmp/meshcore-zero.deb https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb
 sudo apt install /tmp/meshcore-zero.deb
 ```
 
@@ -64,6 +64,9 @@ not the radio frequency.
 
 ## Message indicators
 
+Small green circles mean a matching radio echo or DM acknowledgement returned.
+Red circles mean no confirmation has returned yet.
+
 A transmitted channel message can be heard by another device without any
 response returning. A heard indication appears only when MeshCore receives a
 matching copy of the message back over the radio. It does not confirm delivery
@@ -93,3 +96,9 @@ and a custom frequency editor are not included.
 Independent client using [openHop Core](https://github.com/openhop-dev/openhop_core)
 and the [MeshCore protocol](https://github.com/meshcore-dev/meshcore).
 See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
+
+In **Settings → Update app**, check GitHub for a newer release, press Enter to
+download it, then enter your device’s sudo password to install. The password is
+used only for that installation and is never saved or sent to GitHub. Keep power
+connected during installation; the app restarts when finished. Updates preserve
+your local identity, channels, and messages.

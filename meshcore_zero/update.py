@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from . import __version__
@@ -18,7 +19,8 @@ def version(value):
     return tuple(map(int, value.lstrip('v').split('.')))
 
 def fetch(url, limit):
-    with urlopen(Request(url, headers={'User-Agent': 'MeshCore-Zero-updater', 'Accept': 'application/vnd.github+json'}), timeout=20) as response:
+    url += ('&' if '?' in url else '?')+'meshcore='+str(time.time_ns())
+    with urlopen(Request(url, headers={'User-Agent': 'MeshCore-Zero-updater', 'Accept': 'application/vnd.github+json', 'Cache-Control': 'no-cache'}), timeout=20) as response:
         if not response.url.startswith('https://'):
             raise ValueError('Insecure download refused')
         data = response.read(limit+1)

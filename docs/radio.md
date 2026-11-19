@@ -77,3 +77,32 @@ The detection implementation is independent; no MeshZero application code is bun
 Automated tests cover both revisions, missing boards, and failed detection.
 Only the available physical CAP has been tested; legacy hardware field validation
 remains pending. Power the device off before changing CAPs.
+
+The Japan profile caps transmitted text at 16 UTF-8 bytes (including the sender
+prefix on channels), and rejects any serialized packet whose predicted airtime
+reaches 4 seconds. This can reject long routed DMs and node advertisements at
+SF12. Shorter coding rates may allow more RF capacity, but the text cap stays
+conservative. Busy or unavailable RSSI sensing cancels transmission rather than
+forcing it; every physical packet is checked, including automatic replies.
+RSSI is sampled over at least 5 ms at a -80 dBm threshold and transmissions are
+spaced at least 50 ms apart. These are host-software safeguards, not a measured
+or certified implementation of [ARIB STD-T108](https://www.arib.or.jp/english/html/overview/doc/5-STD-T108v1_5-E1.pdf).
+Use equipment and firmware/configuration approved for your installation.
+
+## CAP detection
+
+| CAP | Detection | Antenna enable |
+| --- | --- | --- |
+| Current Cap LoRa-1262 | PI4IOE5V6408 ID at I²C 0x43, then SX126x SPI signature | P0 high; preserve other pins |
+| Legacy Cap LoRa868 | No expander acknowledgement, then SX126x SPI signature | No external expander needed |
+
+Missing or floating SPI cannot be accepted as an attached CAP. Permission errors,
+unrecognized expander IDs, and antenna-switch write failures remain errors rather
+than silently becoming a legacy CAP. Power and the switch pin are restored on
+exit; identity and history are unaffected. Power off before swapping CAPs.
+
+Hardware facts were cross-checked against [M5Stack's board documentation](https://docs.m5stack.com/en/cap/Cap_LoRa-1262)
+and [MeshZero's detection logic](https://github.com/s0liton/MeshZero/blob/22ec6f98a4283c7b7e4d66bec030a1956839881a/src/daemon/hw.cpp).
+This is an independent Python implementation; MeshZero's GPL source is not
+included. Unit tests cover both detection paths and failure modes. A real
+legacy CAP still needs a separate hardware validation run.

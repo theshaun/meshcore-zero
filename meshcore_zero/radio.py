@@ -200,7 +200,7 @@ class Backend:
                 from openhop_core.protocol.packet_utils import calculate_lora_airtime_ms
                 cfg = self.config
                 airtime = calculate_lora_airtime_ms(200, cfg['spreading_factor'], cfg['bandwidth'], cfg['coding_rate'], 16)
-                self.next_tx = time.monotonic() + airtime / 1000 * (99 if self.region in EUROPE else 9)
+                self.next_tx = time.monotonic() + (0.05 if self.region=='JP' else airtime / 1000 * (99 if self.region in EUROPE else 9))
                 if state not in ('sent','delivered'):
                     self.notify(state.capitalize())
             except BaseException:

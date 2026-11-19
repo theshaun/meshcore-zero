@@ -34,6 +34,14 @@ sudo apt install /tmp/meshcore-zero.deb
 Open **MeshCore** in APPLaunch. If the icon has not appeared, refresh or restart
 the launcher. Application updates preserve your identity, channels, and history.
 
+## Update
+
+In **Settings → Update app**, check GitHub for a newer release, press Enter to
+download it, then enter your device’s sudo password to install. The password is
+used only for that installation and is never saved or sent to GitHub. Keep power
+connected during installation; the app restarts when finished. Updates preserve
+your local identity, channels, and messages.
+
 ## Using MeshCore
 
 - **Tab** cycles through Chats, Join Channel, Nodes, and Settings; **Enter** opens.
@@ -45,7 +53,7 @@ the launcher. Application updates preserve your identity, channels, and history.
   entering another leading `#` is harmless.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Infrastructure nodes remain visible in the list.
-- **Settings** controls region, coding rate, node name, and announcements.
+- **Settings** controls region, coding rate, node name, announcements, and app updates.
 
 The inbox combines channels and direct messages, with message previews and
 unread counts. Names and messages support offline color Unicode emoji.
@@ -96,9 +104,3 @@ and a custom frequency editor are not included.
 Independent client using [openHop Core](https://github.com/openhop-dev/openhop_core)
 and the [MeshCore protocol](https://github.com/meshcore-dev/meshcore).
 See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
-
-In **Settings → Update app**, check GitHub for a newer release, press Enter to
-download it, then enter your device’s sudo password to install. The password is
-used only for that installation and is never saved or sent to GitHub. Keep power
-connected during installation; the app restarts when finished. Updates preserve
-your local identity, channels, and messages.

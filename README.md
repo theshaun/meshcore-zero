@@ -17,7 +17,21 @@ included, but EU over-the-air validation is still pending.
 
 ## Install
 
-SSH into your Cardputer Zero, then run:
+### App store — recommended
+
+Open **Store** on your Cardputer Zero, search for **MeshCore** or enter share
+code **MCZR**, then install it. Open **MeshCore** from APPLaunch afterward.
+
+[View MeshCore in the Cardputer app store](https://cardputer.cc/#/apps/MCZR)
+
+The approved store version is currently **v0.1.11**. GitHub releases may be newer;
+**v0.1.12** adds the automatic MeshZero background-service handoff described below.
+If you use the store version, close MeshZero’s background radio service before
+opening MeshCore so the two apps do not share the CAP.
+
+### GitHub release — manual alternative
+
+To install directly from GitHub instead, SSH into your Cardputer Zero and run:
 
 ```sh
 curl -fL https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb -o /tmp/meshcore-zero.deb
@@ -40,7 +54,8 @@ In **Settings → Update app**, check GitHub for a newer release, press Enter to
 download it, then enter your device’s sudo password to install. The password is
 used only for that installation and is never saved or sent to GitHub. Keep power
 connected during installation; the app restarts when finished. Updates preserve
-your local identity, channels, and messages.
+your local identity, channels, and messages. This checks GitHub releases and may
+install a version newer than the app-store version.
 
 ## Using MeshCore
 
@@ -60,8 +75,9 @@ unread counts. Names and messages support offline color Unicode emoji.
 
 ## Sharing the LoRa CAP with MeshZero
 
-Available in GitHub releases from **v0.1.12**. The pending store candidate stays
-at v0.1.11 while the store reviews the permission-file location.
+Available in GitHub releases from **v0.1.12**. The approved store version is
+v0.1.11 and does not yet include this feature; the permission-file location
+remains under store review.
 
 If MeshZero’s background service is running, MeshCore shows a notice with one
 **Okay** button. Press Enter to close that service and continue. MeshCore waits

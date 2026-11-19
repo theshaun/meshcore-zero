@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Recommend the approved Cardputer app-store installation first, with share code MCZR and a direct listing link.
+- Clarify the available store version and newer GitHub-only MeshZero handoff feature.
+
 ## 0.1.12 — 2026-11-19
 
 - Released on GitHub; the store candidate remains v0.1.11 pending approval of the exact-unit stop permission’s install location.

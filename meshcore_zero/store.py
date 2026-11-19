@@ -7,14 +7,13 @@ import time
 from pathlib import Path
 
 PUBLIC_KEY = "8b3387e9c5cdea6ac9e5edbaa115cd72"
-PRESETS = {
-    "US": dict(frequency=910525000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=20),
-    "EU": dict(frequency=869618000, bandwidth=62500, spreading_factor=8, coding_rate=5, tx_power=14),
-}
+from .regions import PRESETS
 
 
 def radio_config(store, region=None):
     region = region or store.get('region', 'US')
+    if region not in PRESETS:
+        raise ValueError('Unknown radio region')
     config = dict(PRESETS[region])
     coding_rate = int(store.get('coding_rate_' + region, config['coding_rate']))
     if coding_rate not in (5, 6, 7, 8):

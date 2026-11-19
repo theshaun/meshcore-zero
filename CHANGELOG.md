@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.10 — 2026-11-18
+
+- Scrollable regional radio picker with experimental Japan and additional community presets.
+- Preserve existing US/EU settings and per-region coding-rate overrides.
+- Configure community path-hash widths for Canada, Australia, New Zealand and Czechia.
+- Japan: 13 dBm, RSSI-based clear-channel checks, 4-second airtime cap and 50 ms TX spacing, including automatic packets.
+- Detect current CAP antenna-switch hardware and legacy CAPs without an I²C expander; verify the SPI radio signature.
+- Document hardware coverage and regional limitations.
+
+
 ## 0.1.9 — 2026-11-18
 
 - Muted dark grey unconfirmed-message dots so green confirmations stand out.

@@ -13,6 +13,9 @@ import time
 from collections import OrderedDict
 
 from .store import radio_config
+from .cap import CapPower
+from .regions import PATH_BYTES, EUROPE
+from .regional_radio import RegionalRadioMixin
 
 log = logging.getLogger(__name__)
 
@@ -25,60 +28,6 @@ def configure_mesh_sync(chip):
     if tuple(chip.readRegister(0x0740, 2)) != (0x14, 0x24):
         raise RuntimeError('SX1262 sync word readback failed')
     chip.request(chip.RX_CONTINUOUS)
-
-
-class CapPower:
-    def __init__(self):
-        self.saved = []
-        self.i2c = None
-
-    def start(self):
-        from periphery import I2C
-        try:
-            for name in ('ext_5v_out', 'grove_5v_out'):
-                path = Path('/sys/class/leds') / name / 'brightness'
-                value = path.read_text().strip()
-                self.saved.append((path, value))
-                if value == '0':
-                    path.write_text('1')
-            time.sleep(.15)
-            self.i2c = I2C('/dev/i2c-1')
-            self.registers = {reg: self.read(reg) for reg in (3, 5, 7)}
-            self.write(3, self.registers[3] | 1)  # P0 output
-            self.write(7, self.registers[7] & ~1)  # P0 drive enabled
-            self.write(5, self.registers[5] | 1)  # RF antenna switch
-            if not self.read(5) & 1:
-                raise RuntimeError('CAP antenna switch readback failed')
-        except Exception:
-            self.close()
-            raise
-
-    def read(self, reg):
-        from periphery import I2C
-        messages = [I2C.Message([reg]), I2C.Message([0], read=True)]
-        self.i2c.transfer(0x43, messages)
-        return messages[1].data[0]
-
-    def write(self, reg, value):
-        from periphery import I2C
-        self.i2c.transfer(0x43, [I2C.Message([reg, value])])
-
-    def close(self):
-        if self.i2c:
-            for reg, value in getattr(self, 'registers', {}).items():
-                try:
-                    # Restore only P0, preserving other CAP pins.
-                    self.write(reg, (self.read(reg) & ~1) | (value & 1))
-                except Exception:
-                    log.exception('Restoring CAP register')
-            self.i2c.close()
-            self.i2c = None
-        for path, value in reversed(self.saved):
-            try:
-                path.write_text(value)
-            except Exception:
-                log.exception('Restoring CAP power')
-        self.saved.clear()
 
 
 class Backend:
@@ -109,13 +58,16 @@ class Backend:
             self.region = region
             cfg = radio_config(self.store, region)
             self.config = cfg
-            self.radio = SX1262Radio(bus_id=0, cs_id=1, cs_pin=-1,
+            class CapRadio(RegionalRadioMixin, SX1262Radio):
+                pass
+            self.radio = CapRadio(region=region,bus_id=0, cs_id=1, cs_pin=-1,
                 gpio_chip=0, use_gpiod_backend=True, reset_pin=26,
                 busy_pin=22, irq_pin=23, txen_pin=-1,
                 preamble_length=16, sync_word=0x12,
                 use_dio2_rf=True, use_dio3_tcxo=True, dio3_tcxo_voltage=3.0, **cfg)
             if not self.radio.begin():
                 raise RuntimeError('SX1262 initialization failed; check CAP seating')
+            self.power.confirm_radio(self.radio.lora)
             configure_mesh_sync(self.radio.lora)
             seed = self.store.get('identity')
             if seed is None:
@@ -126,6 +78,7 @@ class Backend:
             self.engine = CompanionRadio(self.radio, identity,
                 node_name=self.store.get('name', 'Zero-' + identity.get_public_key().hex()[:4]),
                 radio_config=cfg)
+            self.engine.set_path_hash_mode(PATH_BYTES.get(region,1)-1)
             self.engine.contacts.load_from_dicts([json.loads(r[0]) for r in self.store.db.execute('SELECT data FROM nodes')])
             self.engine.set_autoadd_config(0x0f)
             self.sync_channels()
@@ -134,7 +87,7 @@ class Backend:
             self.engine.on_advert_received(self.advert)
             self.watch_echoes()
             await self.engine.start()
-            self.state = region + ' · Radio ready'
+            self.state = region + ' · ' + self.power.model
             log.info('Radio active: %.3f MHz, %.1f kHz, SF%d, CR4/%d, %d dBm',
                 cfg['frequency']/1e6, cfg['bandwidth']/1e3,
                 cfg['spreading_factor'], cfg['coding_rate'], cfg['tx_power'])
@@ -227,6 +180,8 @@ class Backend:
         overhead = len((self.engine.prefs.node_name + ': ').encode()) if chat['kind'] == 'channel' else 0
         if not text.strip() or len(text.encode()) + overhead > 150:
             raise ValueError('Message too long (150 bytes including name)')
+        if self.region=='JP' and len(text.encode())+overhead>16:
+            raise ValueError('Japan: max 16 bytes including sender name')
         async with self.send_lock:
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
@@ -245,7 +200,7 @@ class Backend:
                 from openhop_core.protocol.packet_utils import calculate_lora_airtime_ms
                 cfg = self.config
                 airtime = calculate_lora_airtime_ms(200, cfg['spreading_factor'], cfg['bandwidth'], cfg['coding_rate'], 16)
-                self.next_tx = time.monotonic() + airtime / 1000 * (99 if self.region == 'EU' else 9)
+                self.next_tx = time.monotonic() + airtime / 1000 * (99 if self.region in EUROPE else 9)
                 if state not in ('sent','delivered'):
                     self.notify(state.capitalize())
             except BaseException:
@@ -261,7 +216,7 @@ class Backend:
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
             ok = await self.engine.advertise(flood=True)
-            self.next_tx = time.monotonic() + (60 if self.region == 'EU' else 6)
+            self.next_tx = time.monotonic() + (60 if self.region in EUROPE else 6)
             self.notify('Announcement sent' if ok else 'Announcement failed')
 
     async def close(self):

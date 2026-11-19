@@ -58,17 +58,25 @@ your local identity, channels, and messages.
 The inbox combines channels and direct messages, with message previews and
 unread counts. Names and messages support offline color Unicode emoji.
 
-## Radio settings
+## Radio settings and CAPs
 
-| Profile | Frequency | Bandwidth | SF | Default coding rate | TX power |
-| --- | --- | --- | --- | --- | --- |
-| US | 910.525 MHz | 62.5 kHz | 7 | 4/5 | 20 dBm |
-| EU | 869.618 MHz | 62.5 kHz | 8 | 4/5 | 14 dBm |
+Both the current **Cap LoRa-1262** and the legacy **Cap LoRa868** are detected
+automatically. Settings shows the detected model. The legacy CAP does not need
+the newer board’s antenna-switch expander.
 
-Set the profile and coding rate to match your local network, then restart the
-app to apply radio changes. Coding rate cycles from 4/5 through 4/8 and is
-saved separately for each profile. A hashtag channel changes its shared key,
-not the radio frequency.
+**Settings → Region** offers USA, Europe (legacy), Japan (experimental), Canada,
+Australia, New Zealand, EU/UK, Switzerland, Czechia, Netherlands, Portugal,
+Thailand, and Vietnam. Restart to apply; saved coding-rate overrides and your
+existing US/EU configuration are preserved.
+
+Japan uses 920.800 MHz / SF12 / BW125 / CR4/8 at 13 dBm, with energy-based
+listen-before-talk and per-packet airtime limits. Text is limited to 16 UTF-8
+bytes including a channel’s sender prefix. This is experimental and does not
+establish Japanese equipment certification. Use an appropriately approved setup.
+
+See [radio profiles and CAP compatibility](docs/radio.md) for exact settings,
+Japan limitations, hardware detection, and field-test coverage. A hashtag channel
+changes its shared key, not the radio frequency.
 
 ## Message indicators
 

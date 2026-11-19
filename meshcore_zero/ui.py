@@ -2,6 +2,7 @@
 import time
 from PIL import Image, ImageDraw, ImageFont
 from .store import radio_config
+from .regions import PRESETS, NAMES
 from .text import Text
 
 BG = '#101d29'
@@ -143,6 +144,19 @@ class UI:
                 if key == 'backspace': self.password=self.password[:-1]
                 elif len(key)==1 and key.isprintable() and len(self.password)<128: self.password+=key
             return
+        if self.screen == 'regions':
+            regions=list(PRESETS)
+            if key in ('up','down'):
+                self.selected=max(0,min(len(regions)-1,self.selected+(1 if key=='down' else -1)))
+            elif key in ('escape','enter'):
+                if key=='enter':
+                    chosen=regions[self.selected]
+                    self.store.set('region',chosen)
+                    self.notice('JP experimental · see README' if chosen=='JP' else 'Region saved · restart app to apply')
+                self.screen,self.selected='settings',0
+            elif key=='tab':
+                self.screen,self.menu,self.selected='inbox',0,0
+            return
         if key == 'tab':
             if self.screen == 'chat':
                 self.drafts[self.chat['id']] = self.draft
@@ -180,8 +194,8 @@ class UI:
                     self.open_chat(next(c for c in self.store.chats() if c['id'] == cid))
                 elif self.screen == 'settings':
                     if self.selected == 0:
-                        self.store.set('region', 'EU' if self.store.get('region', 'US') == 'US' else 'US')
-                        self.notice('Region saved · restart app to apply')
+                        self.screen='regions'
+                        self.selected=list(PRESETS).index(self.store.get('region','US'))
                     elif self.selected == 1:
                         region = self.store.get('region', 'US')
                         coding_rate = radio_config(self.store, region)['coding_rate']
@@ -239,8 +253,9 @@ class UI:
         if not self.backend.engine:
             raise ValueError('Radio offline · message not sent')
         overhead = len((self.backend.engine.prefs.node_name + ': ').encode()) if chat['kind'] == 'channel' else 0
-        if len(text.encode()) + overhead > 150:
-            raise ValueError(f'Max {150-overhead} bytes for this conversation')
+        limit=16 if getattr(self.backend,'region','US')=='JP' else 150
+        if len(text.encode()) + overhead > limit:
+            raise ValueError(f'Max {max(0,limit-overhead)} bytes for this conversation')
         async def work():
             try:
                 await self.backend.send(chat, text)
@@ -313,6 +328,18 @@ class UI:
                 text(12,y+1,node.get('name','Unknown'),bold=True,width=290)
                 text(12,y+18,('Chat' if node.get('adv_type')==1 else 'Infrastructure')+' · '+node['public_key'][:12],MUTED,10)
             hint = '↑↓ select    Enter DM    Esc back'
+        elif self.screen == 'regions':
+            regions=list(PRESETS)
+            start=max(0,self.selected-3)
+            for i,region in enumerate(regions[start:start+4],start):
+                cfg=radio_config(self.store,region)
+                y=23+(i-start)*32
+                d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if i==self.selected else PANEL)
+                label=NAMES[region]+(' · experimental' if region=='JP' else '')
+                text(12,y+1,label,bold=True,width=292)
+                detail=f"{cfg['frequency']/1e6:.3f} MHz  SF{cfg['spreading_factor']}  BW{cfg['bandwidth']/1000:g}  CR4/{cfg['coding_rate']}"
+                text(12,y+18,detail,MUTED,9,width=292)
+            hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
             for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app']):

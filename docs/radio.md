@@ -1,0 +1,79 @@
+# Radio profiles and CAP compatibility
+
+Select **Settings → Region**, choose a profile with Up/Down, then press Enter.
+Restart MeshCore to apply it. Selecting or cancelling a profile never transmits.
+Existing US/EU profiles and per-profile coding-rate overrides are preserved.
+
+| Profile | MHz | BW kHz | SF | CR | TX dBm | Path hash bytes |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| US | 910.525 | 62.5 | 7 | 4/5 | 20 | 1 |
+| EU (legacy) | 869.618 | 62.5 | 8 | 4/5 | 14 | 1 |
+| Japan (experimental) | 920.800 | 125 | 12 | 4/8 | 13 | 1 |
+| Canada | 910.525 | 62.5 | 7 | 4/5 | 20 | 3 |
+| Australia (narrow) | 916.575 | 62.5 | 7 | 4/7 | 20 | 2 |
+| New Zealand (narrow) | 917.375 | 62.5 | 7 | 4/5 | 20 | 2 |
+| EU / UK | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 |
+| Switzerland | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 |
+| Czechia | 869.432 | 62.5 | 7 | 4/5 | 14 | 2 |
+| Netherlands | 869.618 | 62.5 | 7 | 4/5 | 14 | 1 |
+| Portugal (868) | 869.618 | 62.5 | 7 | 4/6 | 14 | 1 |
+| Thailand | 921.000 | 62.5 | 7 | 4/5 | 13 | 1 |
+| Vietnam (narrow) | 920.250 | 62.5 | 8 | 4/5 | 13 | 1 |
+
+These are offline community starting points, not universal national settings or
+an equipment approval. Match your local mesh's radio settings and antenna band.
+The values (except legacy EU and experimental Japan) follow the
+[official MeshCore preset API](https://api.meshcore.nz/api/v1/config), checked
+2026-11-18. Power defaults are conservative application choices; the API does not
+specify them. The app deliberately excludes 433 MHz and presets outside the
+CAP's published 868–923 MHz range. US peer messaging has been tested; other
+profiles need local field testing. No automatic frequency changes or online
+preset downloads take place.
+
+## Japan (experimental)
+
+The 920.800 MHz / SF12 / BW125 / CR4/8 setting follows the
+[MeshCore Japan community proposal](https://github.com/meshcore-dev/MeshCore/issues/2079).
+It is not currently in the official preset API.
+
+The physical TX path applies these controls to messages, retries, acknowledgements,
+and announcements:
+
+- TX power at most 13 dBm, on the selected 920.800 MHz / BW125 profile.
+- Repeated RSSI energy samples over at least 5 ms, below −80 dBm, before TX.
+- Busy, missing, or invalid sensing cancels TX; it is never forced after timeout.
+- Packets with estimated airtime of 4 seconds or more are refused.
+- At least 50 ms between completion of a send attempt and the next TX.
+
+The composer limits text to 16 UTF-8 bytes (including the sender prefix for a
+channel message). Use a short node name; Japanese characters occupy multiple
+bytes. A routed packet can still exceed the airtime cap and be refused. Long
+announcements may also exceed it. Failed sends remain visible in history.
+
+These are software controls on a general-purpose Linux host, not a calibrated
+RF conformance test or a Giteki approval. Japan operation requires an appropriately
+certified hardware/antenna/software combination. The profile has not been tested
+on air in Japan. See [ARIB STD-T108](https://www.arib.or.jp/english/html/overview/doc/5-STD-T108v1_5-E1.pdf)
+for the relevant equipment classes and conditions.
+
+## Automatic CAP detection
+
+Both boards use the SX1262 on SPI0 CE1 with the same radio GPIO wiring:
+
+| Board | Detection and antenna control |
+| --- | --- |
+| Current Cap LoRa-1262 | Recognize the PI4IOE5V6408 at I²C address 0x43; enable its P0 antenna switch and verify readback. |
+| Legacy Cap LoRa868 | Allow the absent expander, then require an SX126x silicon signature over SPI. No expander writes. |
+
+An unrelated I²C device, permission error, or failed antenna-switch write is not
+silently treated as an older CAP. Floating SPI bus responses cannot pass detection.
+Power and switch state are restored at exit, preserving other expander pins.
+Settings shows the detected model after radio startup.
+
+Hardware facts were cross-checked with [M5Stack's CAP documentation](https://docs.m5stack.com/en/cap/Cap_LoRa-1262),
+the [PI4IOE5V6408 datasheet](https://www.diodes.com/part/view/PI4IOE5V6408), and
+[MeshZero's hardware detection](https://github.com/s0liton/MeshZero/blob/22ec6f98a4283c7b7e4d66bec030a1956839881a/src/daemon/hw.cpp).
+The detection implementation is independent; no MeshZero application code is bundled.
+Automated tests cover both revisions, missing boards, and failed detection.
+Only the available physical CAP has been tested; legacy hardware field validation
+remains pending. Power the device off before changing CAPs.

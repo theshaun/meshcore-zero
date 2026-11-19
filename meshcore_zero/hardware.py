@@ -4,6 +4,8 @@ import glob
 import mmap
 import os
 import struct
+import numpy as np
+from PIL import ImageChops
 
 
 class Framebuffer:
@@ -23,23 +25,30 @@ class Framebuffer:
             smem_len = struct.unpack_from('I',fix,16+struct.calcsize('L'))[0]
             self.memory = mmap.mmap(self.fd, smem_len, flags=mmap.MAP_SHARED,
                 prot=mmap.PROT_READ | mmap.PROT_WRITE)
+            self.previous = None
         except BaseException:
             os.close(self.fd)
             raise
 
     def write(self, image):
-        pixels=bytearray()
-        for rgb in image.getdata():
-            value=0
-            for channel,(offset,length,_) in zip(rgb,self.fields):
-                value |= (channel >> (8-length)) << offset
-            pixels.extend(value.to_bytes(self.bpp//8,'little'))
-        rowbytes=self.width*self.bpp//8
-        for y in range(self.height):
-            offset=(y+self.yoff)*self.stride+self.xoff*self.bpp//8
+        if image.size != (self.width,self.height) or image.mode != 'RGB':
+            raise ValueError('Framebuffer requires a native-size RGB image')
+        bounds = ImageChops.difference(self.previous,image).getbbox() if self.previous else (0,0,self.width,self.height)
+        if bounds is None:
+            return
+        left,top,right,bottom = bounds
+        rgb = np.asarray(image.crop(bounds),dtype=np.uint32)
+        packed = np.zeros(rgb.shape[:2],dtype=np.uint32)
+        for channel,(offset,length,_) in enumerate(self.fields):
+            packed |= (rgb[:,:,channel] >> (8-length)) << offset
+        pixels = packed.astype('<u2' if self.bpp == 16 else '<u4').tobytes()
+        rowbytes=(right-left)*self.bpp//8
+        for row,y in enumerate(range(top,bottom)):
+            offset=(y+self.yoff)*self.stride+(left+self.xoff)*self.bpp//8
             # panel-mipi-dbi's deferred refresh tracks dirty mapped pages.
             # pwrite changes readback memory but can leave the physical LCD stale.
-            self.memory[offset:offset+rowbytes]=pixels[y*rowbytes:(y+1)*rowbytes]
+            self.memory[offset:offset+rowbytes]=pixels[row*rowbytes:(row+1)*rowbytes]
+        self.previous = image.copy()
 
     def close(self):
         try:

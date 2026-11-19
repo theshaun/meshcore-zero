@@ -28,14 +28,16 @@ class UI:
         self.tasks = set()
         self.fonts = {}
         self.text = Text(self.font)
+        self._chat_cache_key = None
+        self._chat_cache = None
 
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
 
-    def render_key(self):
+    def render_key(self, include_draft=True):
         """Visible model revision; idle input polling must not repaint the UI."""
         return (self.store.db.total_changes, self.screen, self.menu, self.selected,
-            self.chat['id'] if self.chat else None, self.draft, self.scroll,
+            self.chat['id'] if self.chat else None, self.draft if include_draft else None, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
@@ -81,7 +83,15 @@ class UI:
             body = msg['text']
             if msg['status'] in ('failed','unconfirmed','interrupted'):
                 body += ' ['+msg['status']+']'
-            lines.extend(self.text.wrap([(name+': ',ACCENT if outgoing else MUTED),(body,TEXT)],300,11))
+            marker=''
+            if outgoing:
+                if msg.get('heard_at'):
+                    marker='● '
+                elif msg['status']=='delivered':
+                    marker='✓ '
+                elif msg['status']=='sent':
+                    marker='○ '
+            lines.extend(self.text.wrap([(marker+name+': ',ACCENT if outgoing else MUTED),(body,TEXT)],300,11))
         return lines
 
     async def key(self, key):
@@ -196,6 +206,11 @@ class UI:
         self.scroll = 0
 
     def render(self):
+        if self.screen == 'chat' and self._chat_cache_key == self.render_key(False):
+            img=self._chat_cache.copy()
+            self.draw_composer(img)
+            self.draw_notice(img)
+            return img
         img = Image.new('RGB', (320, 170), BG)
         d = ImageDraw.Draw(img)
         def text(x, y, value, color=TEXT, size=12, bold=False, width=304):
@@ -268,18 +283,31 @@ class UI:
                 for value,color in line:
                     x=text(x,37+i*13,value,color,11,width=310-x)
             if not history: text(10,58,'Start the conversation.',MUTED,12)
-            d.rounded_rectangle((5,130,314,151),4,fill=SELECT)
-            # Show the tail while typing, avoiding a hidden caret on long drafts.
-            from .text import units
-            tail=list(units(self.draft))
-            while tail and self.text.width(''.join(p for p,_ in tail),11) > 287: tail.pop(0)
-            tail=''.join(p for p,_ in tail)
-            text(11,133,(tail+'|') if self.draft else 'Type a message…',TEXT if self.draft else MUTED,11)
-            hint='Enter send    ↑↓ history    Esc back'
+            self.draw_composer(img)
+            hint='Enter send  ↑↓ history  ○ sent ● heard  Esc back'
             self.store.read(self.chat['id'])
         d.rectangle((0,154,319,169),fill=BG)
         text(8,157,hint,MUTED,9)
-        if self.toast and time.monotonic() < self.toast_until:
-            d.rounded_rectangle((5,129,314,152),4,fill='#38515b')
-            text(11,134,self.toast,TEXT,10,width=296)
+        self.draw_notice(img)
+        if self.screen == 'chat':
+            self._chat_cache_key=self.render_key(False)
+            self._chat_cache=img.copy()
         return img
+
+    def draw_composer(self,img):
+        from .text import units
+        d=ImageDraw.Draw(img)
+        d.rectangle((5,129,314,152),fill=BG)
+        d.rounded_rectangle((5,130,314,151),4,fill=SELECT)
+        tail=list(units(self.draft))
+        while tail and self.text.width(''.join(p for p,_ in tail),11) > 287:
+            tail.pop(0)
+        tail=''.join(p for p,_ in tail)
+        self.text.draw(img,(11,133),(tail+'|') if self.draft else 'Type a message…',
+            TEXT if self.draft else MUTED,11,width=297)
+
+    def draw_notice(self,img):
+        if self.toast and time.monotonic() < self.toast_until:
+            bounds=(5,154,314,169) if self.screen=='chat' else (5,129,314,152)
+            ImageDraw.Draw(img).rounded_rectangle(bounds,4,fill='#38515b')
+            self.text.draw(img,(11,bounds[1]+2),self.toast,TEXT,10,width=296)

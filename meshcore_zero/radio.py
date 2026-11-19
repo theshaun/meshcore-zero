@@ -10,6 +10,7 @@ import logging
 import os
 from pathlib import Path
 import time
+from collections import OrderedDict
 
 from .store import radio_config
 
@@ -93,6 +94,9 @@ class Backend:
         self.next_tx = 0
         self.region = store.get('region', 'US')
         self.config = radio_config(store, self.region)
+        self._outgoing_mid = None
+        self._outgoing_started = 0
+        self._early_echoes = OrderedDict()
 
     async def start(self):
         from openhop_core import CompanionRadio, LocalIdentity
@@ -128,6 +132,7 @@ class Backend:
             self.engine.on_channel_message_event(self.channel_message)
             self.engine.on_message_event(self.direct_message)
             self.engine.on_advert_received(self.advert)
+            self.watch_echoes()
             await self.engine.start()
             self.state = region + ' · Radio ready'
             log.info('Radio active: %.3f MHz, %.1f kHz, SF%d, CR4/%d, %d dBm',
@@ -145,6 +150,50 @@ class Backend:
             for idx, row in enumerate(self.store.db.execute("SELECT * FROM chats WHERE kind='channel' ORDER BY rowid")):
                 self.engine.set_channel(idx, row['name'], bytes.fromhex(row['secret']))
                 self.channels[row['id']] = idx
+
+    def watch_echoes(self):
+        dispatcher=self.engine.node.dispatcher
+        previous=dispatcher.packet_sent_callback
+        async def sent(packet):
+            if previous:
+                await previous(packet)
+            self.packet_sent(packet)
+        dispatcher.set_packet_sent_callback(sent)
+        # This hook precedes MeshCore's duplicate suppression. Echoed packets
+        # are deliberately suppressed by the normal receive path.
+        dispatcher.add_raw_rx_subscriber(self.radio_received)
+
+    def packet_sent(self, packet):
+        if self._outgoing_mid is None or packet.get_payload_type() != 5:
+            return
+        packet_hash=packet.calculate_packet_hash().hex()
+        self.store.bind_tx(self._outgoing_mid,packet_hash)
+        early=self._early_echoes.pop(packet_hash,None)
+        if early and early[1] >= self._outgoing_started:
+            self.store.heard(packet_hash,early[0])
+
+    def radio_received(self, data, rssi=0, snr=0):
+        from openhop_core.protocol import Packet
+        packet=Packet()
+        try:
+            packet.read_from(data)
+            if packet.get_payload_type()!=5 or packet.get_route_type() not in (0,1):
+                return
+            hops=packet.get_path_hash_count()
+            if hops < 1:
+                return
+        except (ValueError,IndexError,TypeError):
+            return
+        # Full payload hash excludes the mutable route, so it matches only
+        # the original encrypted datagram even when a relay has appended hops.
+        packet_hash=packet.calculate_packet_hash().hex()
+        if self.store.heard(packet_hash,hops):
+            log.info('Heard rebroadcast %s via %d hop(s)',packet_hash[:12],hops)
+        else:
+            self._early_echoes[packet_hash]=(hops,time.monotonic())
+            self._early_echoes.move_to_end(packet_hash)
+            while len(self._early_echoes)>256:
+                self._early_echoes.popitem(last=False)
 
     def persist_contacts(self):
         if self.engine:
@@ -184,6 +233,8 @@ class Backend:
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
             mid = self.store.add(chat['id'], self.engine.prefs.node_name, text, status='sending')
+            self._outgoing_mid=mid if chat['kind']=='channel' else None
+            self._outgoing_started=time.monotonic()
             try:
                 if chat['kind'] == 'channel':
                     ok = await self.engine.send_channel_message(self.channels[chat['id']], text)
@@ -202,6 +253,8 @@ class Backend:
             except BaseException:
                 self.store.status(mid, 'failed')
                 raise
+            finally:
+                self._outgoing_mid=None
 
     async def announce(self):
         if not self.engine:

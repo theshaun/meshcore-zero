@@ -1,6 +1,6 @@
 {
   "package_name": "meshcore-zero",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "app_name": "MeshCore",
   "bin_name": "meshcore-zero",
   "description": "Standalone MeshCore messaging for Cardputer Zero and SX1262 LoRa CAP",

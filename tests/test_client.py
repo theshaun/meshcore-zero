@@ -147,7 +147,7 @@ class StoreTests(unittest.TestCase):
         ui=UI(self.store)
         lines=ui.chat_lines(self.store.history('public'))
         self.assertEqual([''.join(s for s,_ in row) for row in lines],
-            ['Zero 💨: Hello','Ari🪐: Seen'])
+            ['○ Zero 💨: Hello','Ari🪐: Seen'])
         self.store.add('public','Zero 💨','Retry me',status='failed')
         self.assertIn('[failed]',''.join(s for s,_ in ui.chat_lines(self.store.history('public'))[-1]))
 

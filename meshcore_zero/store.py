@@ -34,10 +34,15 @@ class Store:
           PRAGMA journal_mode=WAL;
           CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
           CREATE TABLE IF NOT EXISTS chats(id TEXT PRIMARY KEY, name TEXT, kind TEXT, secret TEXT, unread INTEGER DEFAULT 0);
-          CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, chat TEXT, sender TEXT, text TEXT, timestamp INTEGER, status TEXT, token TEXT UNIQUE);
+          CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, chat TEXT, sender TEXT, text TEXT, timestamp INTEGER, status TEXT, token TEXT UNIQUE, tx_hash TEXT, heard_at INTEGER, heard_hops INTEGER);
           CREATE TABLE IF NOT EXISTS nodes(key TEXT PRIMARY KEY, data TEXT);
           CREATE INDEX IF NOT EXISTS history ON messages(chat,id);
         """)
+        columns={row[1] for row in self.db.execute('PRAGMA table_info(messages)')}
+        for name,kind in (('tx_hash','TEXT'),('heard_at','INTEGER'),('heard_hops','INTEGER')):
+            if name not in columns:
+                self.db.execute(f'ALTER TABLE messages ADD COLUMN {name} {kind}')
+        self.db.execute('CREATE INDEX IF NOT EXISTS outgoing_hash ON messages(tx_hash)')
         # Pending messages are never silently retransmitted after a crash.
         self.db.execute("UPDATE messages SET status='interrupted' WHERE status='sending'")
         self.db.execute("INSERT OR IGNORE INTO chats(id,name,kind,secret) VALUES('public','Public','channel',?)", (PUBLIC_KEY,))
@@ -88,6 +93,21 @@ class Store:
     def status(self, mid, status):
         with self.db:
             self.db.execute("UPDATE messages SET status=? WHERE id=?", (status, mid))
+            if status in ('failed','interrupted'):
+                self.db.execute('UPDATE messages SET tx_hash=NULL,heard_at=NULL,heard_hops=NULL WHERE id=?',(mid,))
+
+    def bind_tx(self, mid, packet_hash):
+        with self.db:
+            self.db.execute("UPDATE messages SET tx_hash=?,status='sent' WHERE id=?",(packet_hash,mid))
+
+    def heard(self, packet_hash, hops):
+        if hops < 1:
+            return False
+        with self.db:
+            cur=self.db.execute("""UPDATE messages SET heard_at=?,heard_hops=?
+                WHERE tx_hash=? AND status IN ('sending','sent') AND heard_at IS NULL""",
+                (int(time.time()),hops,packet_hash))
+            return bool(cur.rowcount)
 
     def read(self, chat):
         with self.db:

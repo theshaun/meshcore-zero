@@ -20,11 +20,14 @@ def main():
         store.add('public','Sam','Hello from the mesh',timestamp=100)
         store.add('#local','Sam','Anyone heading outside?',timestamp=200)
         store.add('a'*64,'Ari 🪐','See you this afternoon!',timestamp=300)
-        for sender,body,status in [('Zero 💨','Hello from my Cardputer!','sent'),
+        for index,(sender,body,status) in enumerate([('Zero 💨','Hello from my Cardputer!','sent'),
             ('Ari 🪐','Seen! The emoji looks great.','received'),
             ('Zero 💨','More room for the conversation now.','sent'),
-            ('Ari 🪐','A longer message wraps onto the next line when it needs more space.','received')]:
-            store.add('#testing',sender,body,timestamp=400,status=status)
+            ('Ari 🪐','A longer message wraps onto the next line when it needs more space.','received')]):
+            mid=store.add('#testing',sender,body,timestamp=400,status=status)
+            if index==0:
+                store.bind_tx(mid,'synthetic-preview')
+                store.heard('synthetic-preview',1)
         ui=UI(store)
         (ROOT/'screenshots').mkdir(exist_ok=True)
         ui.render().save(ROOT/'screenshots/inbox.png')

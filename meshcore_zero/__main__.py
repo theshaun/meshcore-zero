@@ -30,6 +30,7 @@ async def run(args):
     from .hardware import Framebuffer,Keyboard
     from .radio import Backend
     fb=keyboard=None
+    input_ready=asyncio.Event()
     backend=Backend(store,ui.notice)
     ui.backend=backend
     loop=asyncio.get_running_loop()
@@ -38,24 +39,31 @@ async def run(args):
     try:
         fb=Framebuffer()
         keyboard=Keyboard()
+        loop.add_reader(keyboard.fd,input_ready.set)
         fb.write(ui.render())  # Show the inbox before starting the radio.
         startup=asyncio.create_task(backend.start())
         previous=None
         started=loop.time()
         while ui.running and (not args.duration or loop.time()-started<args.duration):
+            input_ready.clear()
             for key in keyboard.read():
                 await ui.key(key)
             key=ui.render_key()
             if key!=previous:
                 fb.write(ui.render())
                 previous=ui.render_key()
-            await asyncio.sleep(0.05)
+            try:
+                await asyncio.wait_for(input_ready.wait(),timeout=.05)
+            except asyncio.TimeoutError:
+                pass
         await startup
     finally:
         for task in list(ui.tasks): task.cancel()
         await asyncio.gather(*ui.tasks,return_exceptions=True)
         await backend.close()
-        if keyboard: keyboard.close()
+        if keyboard:
+            loop.remove_reader(keyboard.fd)
+            keyboard.close()
         if fb: fb.close()
         store.db.close()
 

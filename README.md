@@ -73,7 +73,7 @@ not the radio frequency.
 ## Message indicators
 
 Small green circles mean a matching radio echo or DM acknowledgement returned.
-Red circles mean no confirmation has returned yet.
+Muted grey circles mean no confirmation has returned yet.
 
 A transmitted channel message can be heard by another device without any
 response returning. A heard indication appears only when MeshCore receives a

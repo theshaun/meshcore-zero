@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from meshcore_zero.update import Updater, REPO, version
-from meshcore_zero.ui import UI, GREEN, RED
+from meshcore_zero.ui import UI, GREEN, UNCONFIRMED
 from meshcore_zero.store import Store
 
 class UpdateTests(unittest.TestCase):
@@ -17,7 +17,7 @@ class UpdateTests(unittest.TestCase):
     def test_version_and_release_validation(self):
         self.assertGreater(version('0.1.10'),version('v0.1.9'))
         with self.assertRaises(ValueError): version('1.2.3;echo bad')
-        u=Updater()
+        u=Updater('0.1.8')
         with patch('meshcore_zero.update.fetch',return_value=self.release()): self.assertTrue(u.check())
         invalid=json.loads(self.release());invalid['assets'][0]['browser_download_url']='https://example.com/app.deb'
         with patch('meshcore_zero.update.fetch',return_value=json.dumps(invalid).encode()):
@@ -25,7 +25,7 @@ class UpdateTests(unittest.TestCase):
         with patch('meshcore_zero.update.fetch',return_value=self.release()): self.assertFalse(Updater('0.1.10').check())
 
     def test_download_integrity_and_cleanup(self):
-        u=Updater();payload=b'package test';sha=hashlib.sha256(payload).hexdigest()
+        u=Updater('0.1.8');payload=b'package test';sha=hashlib.sha256(payload).hexdigest()
         with patch('meshcore_zero.update.fetch',return_value=self.release()):u.check()
         manifest=(sha+'  '+u.release[1]+'\n').encode()
         with patch('meshcore_zero.update.fetch',side_effect=[manifest,payload]): u.download()
@@ -47,7 +47,7 @@ class UpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             store=Store(root);store.join('#testing');mid=store.add('#testing','Zero','Hi',status='sent')
             ui=UI(store);ui.open_chat(next(c for c in store.chats() if c['id']=='#testing'))
-            self.assertEqual(ui.chat_lines(store.history('#testing'))[0][0],('● ',RED))
+            self.assertEqual(ui.chat_lines(store.history('#testing'))[0][0],('● ',UNCONFIRMED))
             store.bind_tx(mid,'hash');store.heard('hash',0)
             self.assertEqual(ui.chat_lines(store.history('#testing'))[0][0],('● ',GREEN))
             image=ui.render();color=tuple(bytes.fromhex(GREEN[1:]));pixels=[(x,y) for y in range(37,50) for x in range(10,18) if image.getpixel((x,y))==color]

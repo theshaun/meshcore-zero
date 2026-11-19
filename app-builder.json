@@ -1,12 +1,12 @@
 {
   "package_name": "meshcore-zero",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "app_name": "MeshCore",
   "bin_name": "meshcore-zero",
   "description": "Standalone MeshCore messaging for Cardputer Zero and SX1262 LoRa CAP",
   "store": {
     "summary": "Standalone mesh messaging on your Cardputer Zero. No companion needed.",
-    "description": "Channels and direct messages in one simple inbox, with previews, unread counts and saved history. Join hashtag channels, discover nodes, and select US or EU radio presets. Uses the attached SX1262 LoRa CAP directly. First alpha release; live peer interoperability still needs field testing.",
+    "description": "Channels and direct messages in one simple inbox, with previews, unread counts and saved history. Join hashtag channels, discover nodes, and select US or EU radio presets. Uses the attached SX1262 LoRa CAP directly. Offline color emoji, radio echo indicators, and in-app GitHub updates. Early access; US peer messaging tested, EU radio validation pending.",
     "categories": ["Radio & Comms", "Hardware & IoT"],
     "screenshots": ["screenshots/inbox.png", "screenshots/chat.png"],
     "icon": "packaging/icon.png",

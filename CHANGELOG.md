@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9 — 2026-11-18
+
+- Muted dark grey unconfirmed-message dots so green confirmations stand out.
+- Updated app store listing for the first public store submission.
+
+
 ## 0.1.8 — 2026-11-18
 
 - Small green/red message indicators; recognize matching zero-hop radio echoes.

@@ -11,7 +11,7 @@ TEXT = '#e8f3f9'
 ACCENT = '#69dfca'
 SELECT = '#254c65'
 GREEN = '#4de27a'
-RED = '#f16b73'
+UNCONFIRMED = '#52616d'
 
 
 class UI:
@@ -94,7 +94,7 @@ class UI:
                 body += ' ['+msg['status']+']'
             spans=[(name+': ',ACCENT if outgoing else MUTED),(body,TEXT)]
             if outgoing:
-                color=GREEN if msg.get('heard_at') or msg['status']=='delivered' else RED
+                color=GREEN if msg.get('heard_at') or msg['status']=='delivered' else UNCONFIRMED
                 spans.insert(0,('● ',color))
             lines.extend(self.text.wrap(spans,300,11))
         return lines
@@ -343,14 +343,14 @@ class UI:
             for i,line in enumerate(visible):
                 x=10
                 for value,color in line:
-                    if value=='● ' and color in (GREEN,RED):
+                    if value=='● ' and color in (GREEN,UNCONFIRMED):
                         d.ellipse((x+1,42+i*13,x+4,45+i*13),fill=color)
                         x+=self.text.width(value,11)
                     else:
                         x=text(x,37+i*13,value,color,11,width=310-x)
             if not history: text(10,58,'Start the conversation.',MUTED,12)
             self.draw_composer(img)
-            hint='Enter send  ↑↓ history   Red: no echo   Esc back'
+            hint='Enter send  ↑↓ history   Grey: no echo   Esc back'
             self.store.read(self.chat['id'])
         d.rectangle((0,154,319,169),fill=BG)
         text(8,157,hint,MUTED,9)

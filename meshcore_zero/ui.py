@@ -139,6 +139,9 @@ class UI:
 
     async def key(self, key):
         if self.launch_state:
+            if self.launch_state=='conflict' and key=='escape':
+                self.running=False
+                self.launch_ack.set()
             if key=='enter':
                 if self.launch_state=='conflict': self.launch_ack.set()
                 elif self.launch_state=='error': self.running=False
@@ -402,17 +405,16 @@ class UI:
         self.text.draw(img,(12,9),'MeshCore',ACCENT,14,True,width=296)
         if self.launch_state=='conflict':
             lines=['MeshZero is running in the background.',
-                   'It will be closed so MeshCore can',
-                   'use the LoRa CAP.']
-        elif self.launch_state=='stopping':
-            lines=['Closing MeshZero…','Waiting for the radio to be released.']
+                   'Close it before using the LoRa CAP.',
+                   'SSH: sudo systemctl stop meshzero.service',
+                   'Okay checks again. Esc exits.']
         elif self.launch_state=='error':
             lines=[self.launch_error,'The radio has not been started.',
                    'Check MeshZero, then reopen this app.']
         else:
             lines=['Checking the radio service…']
         for i,line in enumerate(lines):
-            self.text.draw(img,(12,43+i*19),line,TEXT,11,width=296)
+            self.text.draw(img,(12,35+i*19),line,TEXT,11,width=296)
         if self.launch_state in ('conflict','error'):
             d.rounded_rectangle((108,124,211,151),4,fill=SELECT,outline=ACCENT)
             width=self.text.width('Okay',12,True)

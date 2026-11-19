@@ -50,15 +50,13 @@ Type=Application
     icon=stage/'usr/share/APPLaunch/share/images/meshcore-zero.png'
     icon.parent.mkdir(parents=True,exist_ok=True)
     shutil.copy2(ROOT/'packaging/icon.png',icon)
-    write('etc/sudoers.d/meshcore-zero-radio',(ROOT/'packaging/meshcore-zero-radio.sudoers').read_text(),0o440)
-    subprocess.run(['visudo','-cf',str(stage/'etc/sudoers.d/meshcore-zero-radio')],check=True)
     write('DEBIAN/control',f'''Package: meshcore-zero
 Version: {config['version']}
 Architecture: arm64
 Maintainer: unagisan69 <unagisan69@users.noreply.github.com>
 Section: APPLaunch
 Priority: optional
-Depends: sudo, python3 (>= 3.13), python3 (<< 3.14), python3-pil, python3-numpy, python3-spidev (>= 3.6), fonts-dejavu-core
+Depends: python3 (>= 3.13), python3 (<< 3.14), python3-pil, python3-numpy, python3-spidev (>= 3.6), fonts-dejavu-core
 Homepage: https://github.com/unagisan69/meshcore-zero
 Description: Standalone MeshCore client for Cardputer Zero and LoRa CAP
  Combined channels and direct messages with local encrypted radio transport.

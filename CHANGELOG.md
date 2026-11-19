@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.1.13 — 2026-11-19
+
+- Store-compatible MeshZero background-service warning, with the SSH stop command, Okay to recheck and Esc to exit.
+- Keep the CAP unopened while MeshZero is active or its state cannot be checked.
+- Remove automatic service stopping and its rejected sudoers permission file.
+
+## Documentation updates
 
 - Recommend the approved Cardputer app-store installation first, with share code MCZR and a direct listing link.
 - Clarify the available store version and newer GitHub-only MeshZero handoff feature.

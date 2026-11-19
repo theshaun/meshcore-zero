@@ -1,4 +1,4 @@
-"""Hand off the CAP from MeshZero before any MeshCore hardware initialization."""
+"""Check CAP ownership before radio startup; never stop MeshZero before any MeshCore hardware initialization."""
 import asyncio
 import logging
 
@@ -25,7 +25,7 @@ async def command(*args, timeout=5):
             except ProcessLookupError: pass
         await process.communicate()
         if isinstance(exc,asyncio.CancelledError): raise
-        raise ServiceError('MeshZero did not finish closing.') from exc
+        raise ServiceError('MeshZero service check timed out.') from exc
     return process.returncode,stdout.decode(errors='replace')
 
 
@@ -45,42 +45,30 @@ async def is_running():
     return pid!=0 or state not in ('inactive','failed')
 
 
-async def stop_service():
-    # Sudoers authorizes only this exact unit/verb for the radio's gpio group.
-    # An explicit systemd stop suppresses Restart=always and stops its cgroup.
-    code,_=await command('/usr/bin/sudo','-n',SYSTEMCTL,'stop',UNIT,timeout=25)
-    if code:
-        raise ServiceError('MeshZero could not be closed.')
-    if await is_running():
-        raise ServiceError('MeshZero is still running.')
-
-
-async def start_radio(ui,backend,check=is_running,stop=stop_service):
+async def start_radio(ui,backend,check=is_running):
     try:
-        ui.launch_state='checking'
-        if await check():
-            ui.launch_ack.clear()
-            ui.launch_state='conflict'
-            await ui.launch_ack.wait()
+        while ui.running:
+            ui.launch_state='checking'
+            if await check():
+                ui.launch_ack.clear()
+                ui.launch_state='conflict'
+                await ui.launch_ack.wait()
+                continue  # Okay rechecks; never stops another service.
+            # Recheck immediately before hardware initialization.
+            if await check(): continue
             if not ui.running: return
-            ui.launch_state='stopping'
-            await stop()
-        # Check once more immediately before entering the hardware lifecycle.
-        if await check():
-            raise ServiceError('MeshZero restarted. Please reopen MeshCore.')
-        if not ui.running: return
-        ui.launch_state=''
-        await backend.start()
+            ui.launch_state=''
+            await backend.start()
+            return
     except ServiceError as exc:
-        log.warning('Radio handoff: %s',exc)
+        log.warning('Radio conflict check: %s',exc)
         ui.launch_state='error'
         ui.launch_error=str(exc)
         backend.error=str(exc)
         backend.state='Radio not started'
-
     except Exception:
-        log.exception('Radio service handoff failed')
+        log.exception('Radio service check failed')
         ui.launch_state='error'
-        ui.launch_error='Cannot prepare the radio service.'
+        ui.launch_error='Cannot check the radio service.'
         backend.error=ui.launch_error
         backend.state='Radio not started'

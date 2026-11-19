@@ -24,10 +24,9 @@ code **MCZR**, then install it. Open **MeshCore** from APPLaunch afterward.
 
 [View MeshCore in the Cardputer app store](https://cardputer.cc/#/apps/MCZR)
 
-The approved store version is currently **v0.1.11**. GitHub releases may be newer;
-**v0.1.12** adds the automatic MeshZero background-service handoff described below.
-If you use the store version, close MeshZero’s background radio service before
-opening MeshCore so the two apps do not share the CAP.
+The store listing shows the available version. **v0.1.13** adds a MeshZero
+background-service warning. Close MeshZero’s background service before opening
+MeshCore so the two apps do not share the CAP. See the instructions below.
 
 ### GitHub release — manual alternative
 
@@ -75,20 +74,21 @@ unread counts. Names and messages support offline color Unicode emoji.
 
 ## Sharing the LoRa CAP with MeshZero
 
-Available in GitHub releases from **v0.1.12**. The approved store version is
-v0.1.11 and does not yet include this feature; the permission-file location
-remains under store review.
+From **v0.1.13**, MeshCore warns if MeshZero’s background service is running and
+keeps the radio unopened. Close that service before using MeshCore. Via SSH:
 
-If MeshZero’s background service is running, MeshCore shows a notice with one
-**Okay** button. Press Enter to close that service and continue. MeshCore waits
-for shutdown before accessing the CAP. It does not delete MeshZero’s data or
-disable its startup setting; it can run again when you start it or reboot.
-If shutdown fails, the radio stays unopened and an error is shown.
+```sh
+sudo systemctl stop meshzero.service
+```
 
-The package grants the radio’s `gpio` group permission to run only
-`systemctl stop meshzero.service` without a password. It does not grant general
-service-management or root access. Another radio app must not be started while
-MeshCore is using the CAP.
+Press **Okay** in MeshCore to check again, or **Esc** to exit. If MeshZero is
+still running, the warning remains. This does not delete MeshZero or its data;
+the service can run again when started or after reboot. MeshCore does not stop
+services or request privileged service-management permissions in this version.
+Do not start another radio app while MeshCore is using the CAP.
+
+The earlier GitHub-only v0.1.12 automatically stopped MeshZero after acknowledgement.
+The store-compatible v0.1.13 replaces that with a warning and recheck.
 
 ## Radio settings and CAPs
 

@@ -26,7 +26,9 @@ code **MCZR**, then install it. Open **MeshCore** from APPLaunch afterward.
 
 The store listing shows the available version. **v0.1.13** adds a MeshZero
 background-service warning. Close MeshZero’s background service before opening
-MeshCore so the two apps do not share the CAP. See the instructions below.
+MeshCore so the two apps do not share the CAP. See the
+[troubleshooting options](#troubleshooting-meshcore-freezes-or-cannot-use-the-lora-cap)
+below.
 
 ### GitHub release — manual alternative
 
@@ -72,23 +74,62 @@ install a version newer than the app-store version.
 The inbox combines channels and direct messages, with message previews and
 unread counts. Names and messages support offline color Unicode emoji.
 
-## Sharing the LoRa CAP with MeshZero
+## Troubleshooting: MeshCore freezes or cannot use the LoRa CAP
 
-From **v0.1.13**, MeshCore warns if MeshZero’s background service is running and
-keeps the radio unopened. Close that service before using MeshCore. Via SSH:
+If **MeshZero** is installed, its background radio can keep the LoRa CAP busy
+after its window closes. This can interfere with MeshCore and other apps that
+need the same hardware. You do **not** have to uninstall MeshZero to use MeshCore;
+choose one of these options:
 
-```sh
-sudo systemctl stop meshzero.service
-```
+1. **Disable background operation in MeshZero:** open MeshZero, go to **Setup**,
+   scroll to **Run in background**, and switch it **Off**. Close MeshZero and
+   allow time for its radio to be released before opening MeshCore.
 
-Press **Okay** in MeshCore to check again, or **Esc** to exit. If MeshZero is
-still running, the warning remains. This does not delete MeshZero or its data;
-the service can run again when started or after reboot. MeshCore does not stop
-services or request privileged service-management permissions in this version.
-Do not start another radio app while MeshCore is using the CAP.
+2. **Stop the service through SSH or the Cardputer CLI:** run:
 
-The earlier GitHub-only v0.1.12 automatically stopped MeshZero after acknowledgement.
-The store-compatible v0.1.13 replaces that with a warning and recheck.
+   ```sh
+   sudo systemctl stop meshzero.service
+   ```
+
+   This stops it now without uninstalling MeshZero. To also prevent it from
+   starting automatically at the next boot, use:
+
+   ```sh
+   sudo systemctl disable --now meshzero.service
+   ```
+
+   To restore automatic startup later:
+
+   ```sh
+   sudo systemctl enable --now meshzero.service
+   ```
+
+   Exit MeshCore before restarting MeshZero's radio service.
+
+3. **Uninstall MeshZero if you no longer want it:** remove it through the
+   Cardputer app store, or run:
+
+   ```sh
+   sudo apt remove meshzero
+   ```
+
+   Back up any MeshZero identity/configuration you want to retain before
+   uninstalling. This command removes MeshZero, not MeshCore.
+
+**Current warning limitation (v0.1.13–v0.1.14):** MeshCore checks whether
+`meshzero.service` is active, rather than whether its radio is actually in use.
+The service can remain active after background operation is turned off, so
+MeshCore's warning may persist even after MeshZero releases the CAP. If that
+happens, use the service-stop command or uninstall option above.
+
+From v0.1.13, the warning keeps MeshCore's radio unopened. After stopping the
+service, press **Okay** to check again, or **Esc** to exit. MeshCore does not stop
+other services automatically. Do not start another radio app while MeshCore is
+using the CAP.
+
+If these steps do not resolve a freeze, report your MeshCore version, OS image,
+CAP revision, and error log. This conflict is one possible cause, not a diagnosis
+of every freeze. Never post your identity database or private keys in an issue.
 
 ## Radio settings and CAPs
 

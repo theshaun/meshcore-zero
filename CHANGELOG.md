@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
+- Document the current service-detection limitation and how to restore MeshZero startup.
+
 ## 0.1.14 — 2026-11-19
 
 - Add the Slovakia community preset: 869.618 MHz, BW62.5, SF7, CR4/5 and 2-byte path hashes.

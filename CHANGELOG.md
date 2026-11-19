@@ -2,6 +2,7 @@
 
 ## 0.1.12 — 2026-11-19
 
+- Released on GitHub; the store candidate remains v0.1.11 pending approval of the exact-unit stop permission’s install location.
 - Check MeshZero’s system service before initializing the CAP.
 - Show a single Okay notice when MeshZero is running; stop its service and verify shutdown before opening the radio.
 - Keep startup responsive during service checks and prevent radio initialization if the handoff fails.

@@ -60,6 +60,9 @@ unread counts. Names and messages support offline color Unicode emoji.
 
 ## Sharing the LoRa CAP with MeshZero
 
+Available in GitHub releases from **v0.1.12**. The pending store candidate stays
+at v0.1.11 while the store reviews the permission-file location.
+
 If MeshZero’s background service is running, MeshCore shows a notice with one
 **Okay** button. Press Enter to close that service and continue. MeshCore waits
 for shutdown before accessing the CAP. It does not delete MeshZero’s data or

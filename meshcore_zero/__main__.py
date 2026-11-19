@@ -30,6 +30,7 @@ async def run(args):
     from .hardware import Framebuffer,Keyboard
     from .radio import Backend
     fb=keyboard=None
+    startup=None
     input_ready=asyncio.Event()
     backend=Backend(store,ui.notice)
     ui.backend=backend
@@ -40,8 +41,10 @@ async def run(args):
         fb=Framebuffer()
         keyboard=Keyboard()
         loop.add_reader(keyboard.fd,input_ready.set)
-        fb.write(ui.render())  # Show the inbox before starting the radio.
-        startup=asyncio.create_task(backend.start())
+        ui.launch_state='checking'
+        fb.write(ui.render())  # Show preflight before touching the radio.
+        from .radio_conflict import start_radio
+        startup=asyncio.create_task(start_radio(ui,backend))
         from .battery import monitor
         battery_task=asyncio.create_task(monitor(ui))
         ui.tasks.add(battery_task)
@@ -60,8 +63,9 @@ async def run(args):
                 await asyncio.wait_for(input_ready.wait(),timeout=.05)
             except asyncio.TimeoutError:
                 pass
-        await startup
     finally:
+        if startup and not startup.done(): startup.cancel()
+        if startup: await asyncio.gather(startup,return_exceptions=True)
         for task in list(ui.tasks): task.cancel()
         await asyncio.gather(*ui.tasks,return_exceptions=True)
         await backend.close()

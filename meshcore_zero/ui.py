@@ -40,6 +40,10 @@ class UI:
         self.password = ''
         self.restart_requested = False
         self.battery = None
+        import asyncio
+        self.launch_state = ''
+        self.launch_error = ''
+        self.launch_ack = asyncio.Event()
 
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
@@ -50,6 +54,7 @@ class UI:
             self.chat['id'] if self.chat else None, self.draft if include_draft else None, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
             self.update_state, self.update_message, len(self.password), self.battery,
+            self.launch_state, self.launch_error,
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -133,6 +138,11 @@ class UI:
         task.add_done_callback(self.tasks.discard)
 
     async def key(self, key):
+        if self.launch_state:
+            if key=='enter':
+                if self.launch_state=='conflict': self.launch_ack.set()
+                elif self.launch_state=='error': self.running=False
+            return
         if self.screen == 'update':
             if self.update_state == 'busy': return
             if key in ('escape','tab'):
@@ -273,6 +283,8 @@ class UI:
         self.scroll = 0
 
     def render(self):
+        if self.launch_state:
+            return self.draw_launch_notice()
         if self.screen == 'chat' and self._chat_cache_key == self.render_key(False):
             img=self._chat_cache.copy()
             self.draw_composer(img)
@@ -382,6 +394,29 @@ class UI:
         if self.screen == 'chat':
             self._chat_cache_key=self.render_key(False)
             self._chat_cache=img.copy()
+        return img
+
+    def draw_launch_notice(self):
+        img=Image.new('RGB',(320,170),BG)
+        d=ImageDraw.Draw(img)
+        self.text.draw(img,(12,9),'MeshCore',ACCENT,14,True,width=296)
+        if self.launch_state=='conflict':
+            lines=['MeshZero is running in the background.',
+                   'It will be closed so MeshCore can',
+                   'use the LoRa CAP.']
+        elif self.launch_state=='stopping':
+            lines=['Closing MeshZero…','Waiting for the radio to be released.']
+        elif self.launch_state=='error':
+            lines=[self.launch_error,'The radio has not been started.',
+                   'Check MeshZero, then reopen this app.']
+        else:
+            lines=['Checking the radio service…']
+        for i,line in enumerate(lines):
+            self.text.draw(img,(12,43+i*19),line,TEXT,11,width=296)
+        if self.launch_state in ('conflict','error'):
+            d.rounded_rectangle((108,124,211,151),4,fill=SELECT,outline=ACCENT)
+            width=self.text.width('Okay',12,True)
+            self.text.draw(img,((320-width)/2,129),'Okay',ACCENT,12,True,width=96)
         return img
 
     def active_tab(self):

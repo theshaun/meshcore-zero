@@ -1,0 +1,2 @@
+# Radio users may stop only the competing MeshZero unit, without a password.
+%gpio ALL=(root) NOPASSWD: /usr/bin/systemctl stop meshzero.service

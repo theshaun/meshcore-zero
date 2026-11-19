@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.12 — 2026-11-19
+
+- Check MeshZero’s system service before initializing the CAP.
+- Show a single Okay notice when MeshZero is running; stop its service and verify shutdown before opening the radio.
+- Keep startup responsive during service checks and prevent radio initialization if the handoff fails.
+- Package a narrowly scoped permission for radio users to stop only meshzero.service, without a password prompt.
+
+
 ## 0.1.11 — 2026-11-18
 
 - Compact, centered Chats / Join / Nodes / Settings tabs with the current section highlighted.

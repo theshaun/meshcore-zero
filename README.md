@@ -58,6 +58,19 @@ your local identity, channels, and messages.
 The inbox combines channels and direct messages, with message previews and
 unread counts. Names and messages support offline color Unicode emoji.
 
+## Sharing the LoRa CAP with MeshZero
+
+If MeshZero’s background service is running, MeshCore shows a notice with one
+**Okay** button. Press Enter to close that service and continue. MeshCore waits
+for shutdown before accessing the CAP. It does not delete MeshZero’s data or
+disable its startup setting; it can run again when you start it or reboot.
+If shutdown fails, the radio stays unopened and an error is shown.
+
+The package grants the radio’s `gpio` group permission to run only
+`systemctl stop meshzero.service` without a password. It does not grant general
+service-management or root access. Another radio app must not be started while
+MeshCore is using the CAP.
+
 ## Radio settings and CAPs
 
 Both the current **Cap LoRa-1262** and the legacy **Cap LoRa868** are detected

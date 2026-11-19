@@ -98,7 +98,7 @@ the newer board’s antenna-switch expander.
 
 **Settings → Region** offers USA, Europe (legacy), Japan (experimental), Canada,
 Australia, New Zealand, EU/UK, Switzerland, Czechia, Netherlands, Portugal,
-Thailand, and Vietnam. Restart to apply; saved coding-rate overrides and your
+Thailand, Vietnam, and Slovakia. Restart to apply; saved coding-rate overrides and your
 existing US/EU configuration are preserved.
 
 Japan uses 920.800 MHz / SF12 / BW125 / CR4/8 at 13 dBm, with energy-based

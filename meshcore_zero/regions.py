@@ -18,12 +18,13 @@ PRESETS = {
     'PT': dict(frequency=869618000, bandwidth=62500, spreading_factor=7, coding_rate=6, tx_power=14),
     'TH': dict(frequency=921000000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=13),
     'VN': dict(frequency=920250000, bandwidth=62500, spreading_factor=8, coding_rate=5, tx_power=13),
+    'SK': dict(frequency=869618000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=14),
 }
 NAMES = {'US':'USA', 'EU':'Europe (legacy)', 'JP':'Japan', 'CA':'Canada',
          'AU':'Australia', 'NZ':'New Zealand', 'UK':'EU / UK', 'CH':'Switzerland',
-         'CZ':'Czechia', 'NL':'Netherlands', 'PT':'Portugal', 'TH':'Thailand', 'VN':'Vietnam'}
-PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2}
-EUROPE = {'EU','UK','CH','CZ','NL','PT'}
+         'CZ':'Czechia', 'NL':'Netherlands', 'PT':'Portugal', 'TH':'Thailand', 'VN':'Vietnam', 'SK':'Slovakia'}
+PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2}
+EUROPE = {'EU','UK','CH','CZ','NL','PT','SK'}
 
 def cooldown_factor(region):
     return 99 if region in EUROPE else 9

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 from meshcore_zero.cap import CapPower
-from meshcore_zero.regions import PRESETS, PATH_BYTES
+from meshcore_zero.regions import PRESETS, PATH_BYTES, EUROPE
 from meshcore_zero.store import Store, radio_config
 from meshcore_zero.ui import UI
 from meshcore_zero.regional_radio import RegionalRadioMixin, wait_clear
@@ -28,6 +28,26 @@ class RegionTests(unittest.TestCase):
                 ui.screen='regions';ui.selected=12
                 self.assertEqual(ui.render().size,(320,170))
                 await ui.key('escape');self.assertEqual(s.get('region'),'JP')
+                s.db.close()
+        asyncio.run(scenario())
+
+    def test_slovakia_profile_matches_community_and_preserves_other_profiles(self):
+        async def scenario():
+            with tempfile.TemporaryDirectory() as tmp:
+                s=Store(tmp);s.set('coding_rate_US',8);s.set('identity','synthetic-identity')
+                before=radio_config(s,'US')
+                ui=UI(s);ui.screen='regions';ui.selected=list(PRESETS).index('SK')
+                self.assertEqual(ui.render().size,(320,170))
+                await ui.key('enter')
+                self.assertEqual(s.get('region'),'SK')
+                self.assertEqual(radio_config(s),dict(frequency=869618000,bandwidth=62500,spreading_factor=7,coding_rate=5,tx_power=14))
+                self.assertEqual(PATH_BYTES['SK'],2);self.assertIn('SK',EUROPE)
+                self.assertEqual(radio_config(s,'US'),before)
+                self.assertEqual(s.get('identity'),'synthetic-identity')
+                s.set('coding_rate_SK',8)
+                s.db.close();s=Store(tmp)
+                self.assertEqual(radio_config(s)['coding_rate'],8)
+                self.assertEqual(radio_config(s,'US')['coding_rate'],8)
                 s.db.close()
         asyncio.run(scenario())
 

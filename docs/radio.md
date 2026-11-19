@@ -19,6 +19,7 @@ Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 | Portugal (868) | 869.618 | 62.5 | 7 | 4/6 | 14 | 1 |
 | Thailand | 921.000 | 62.5 | 7 | 4/5 | 13 | 1 |
 | Vietnam (narrow) | 920.250 | 62.5 | 8 | 4/5 | 13 | 1 |
+| Slovakia | 869.618 | 62.5 | 7 | 4/5 | 14 | 2 |
 
 These are offline community starting points, not universal national settings or
 an equipment approval. Match your local mesh's radio settings and antenna band.
@@ -106,3 +107,16 @@ and [MeshZero's detection logic](https://github.com/s0liton/MeshZero/blob/22ec6f
 This is an independent Python implementation; MeshZero's GPL source is not
 included. Unit tests cover both detection paths and failure modes. A real
 legacy CAP still needs a separate hardware validation run.
+
+## Slovakia
+
+The **Slovakia (SK)** profile follows the community’s
+[current radio settings](https://mesh.om3kff.sk/) and
+[2-byte path-hash recommendation](https://mesh.om3kff.sk/settings.html):
+869.618 MHz, BW62.5, SF7, CR4/5, and 2-byte path hashes. Checked 2026-11-19.
+The profile uses this app’s conservative 14 dBm European power default and
+European airtime pacing. The community frequency page does not specify TX power.
+Select it in Settings → Region and restart to apply. Existing identities,
+channels, radio profiles and per-region coding-rate overrides are preserved.
+This configures the radio and path width; it does not join community channels
+or change their flood scopes. Slovakia over-the-air testing remains pending.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.14 — 2026-11-19
+
+- Add the Slovakia community preset: 869.618 MHz, BW62.5, SF7, CR4/5 and 2-byte path hashes.
+- Use the existing conservative European power and airtime policy; keep the selected profile unchanged until the user chooses another one.
+
+
 ## 0.1.13 — 2026-11-19
 
 - Store-compatible MeshZero background-service warning, with the SSH stop command, Okay to recheck and Esc to exit.

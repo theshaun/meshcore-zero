@@ -7,6 +7,8 @@
 
 ## 0.1.20 — 2026-11-20
 
+- Submit the tested revision to the app store and refresh its listing with channel leaving, identity transfer and updater progress.
+
 - Leave a channel with Backspace in Chats, with a Cancel-first confirmation before removing its local messages and radio subscription.
 - Keep Public left across restarts and allow rejoining it from Join.
 - Add Settings → Identity import/export using MeshCore firmware's 128-character expanded private-key format, including conversion of existing seed identities without changing their public key.

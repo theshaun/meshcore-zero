@@ -7,7 +7,7 @@
 
 ## 0.1.23 — 2026-11-20
 
-- Submit the tested map/GPS revision to the Cardputer app store.
+- Publish the tested map/GPS revision to the Cardputer app store; verify the global and China listings against the tested package checksum.
 
 - Add a compact Map tab with north-up offline radar, two distance rings, coloured node markers, zoom/auto-fit, selection and node details.
 - Read CAP GPS at 115200 baud without receiver commands; validate NMEA checksums/fixes, restore UART settings at exit, and avoid active GPS daemons or serial consoles.

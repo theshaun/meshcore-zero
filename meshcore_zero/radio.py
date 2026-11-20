@@ -101,9 +101,22 @@ class Backend:
 
     def sync_channels(self):
         if self.engine:
-            for idx, row in enumerate(self.store.db.execute("SELECT * FROM chats WHERE kind='channel' ORDER BY rowid")):
+            rows=list(self.store.db.execute("SELECT * FROM chats WHERE kind='channel' ORDER BY rowid"))
+            active={r['id'] for r in rows}
+            for cid,idx in list(self.channels.items()):
+                if cid not in active:
+                    self.engine.channels.remove(idx)
+                    del self.channels[cid]
+            for row in rows:
+                idx=self.channels.get(row['id'])
+                if idx is None:idx=next(i for i in range(32) if i not in self.channels.values())
                 self.engine.set_channel(idx, row['name'], bytes.fromhex(row['secret']))
                 self.channels[row['id']] = idx
+
+    def leave_channel(self,cid):
+        if self.send_lock.locked():raise ValueError('Radio busy · try leaving after sending')
+        self.store.leave(cid)
+        self.sync_channels()
 
     def watch_echoes(self):
         dispatcher=self.engine.node.dispatcher
@@ -159,6 +172,10 @@ class Backend:
     async def channel_message(self, event):
         chat = next((k for k, v in self.channels.items() if v == event.channel_idx), None)
         if chat:
+            row=self.store.db.execute('SELECT name FROM chats WHERE id=?',(chat,)).fetchone()
+            if not row or row['name']!=event.channel_name:
+                self.engine.sync_next_message()
+                return  # A late event from a removed/reused channel slot.
             sender, separator, body = event.text.partition(': ')
             mid = self.store.add(chat, sender if separator else event.sender_name, body if separator else event.text, event.timestamp,
                 token=event.packet_hash, unread=True)
@@ -188,6 +205,8 @@ class Backend:
         if self.region=='JP' and len(text.encode())+overhead>16:
             raise ValueError('Japan: max 16 bytes including sender name')
         async with self.send_lock:
+            if not self.store.db.execute('SELECT 1 FROM chats WHERE id=?',(chat['id'],)).fetchone():
+                raise ValueError('Conversation has been left')
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
             mid = self.store.add(chat['id'], self.engine.prefs.node_name, text, status='sending')

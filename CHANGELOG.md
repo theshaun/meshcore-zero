@@ -5,6 +5,14 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.20 — 2026-11-20
+
+- Leave a channel with Backspace in Chats, with a Cancel-first confirmation before removing its local messages and radio subscription.
+- Keep Public left across restarts and allow rejoining it from Join.
+- Add Settings → Identity import/export using MeshCore firmware's 128-character expanded private-key format, including conversion of existing seed identities without changing their public key.
+- Mask imported keys, preview the resulting public key before replacement, export only to an owner-readable local file, and retain the previous identity for restoration.
+- Restart after identity replacement while preserving the selected data directory, channels, messages and saved repeater credentials.
+
 ## 0.1.19 — 2026-11-20
 
 - Separate updater connection, download, checksum, authentication, package validation, dependency retrieval and installation stages.

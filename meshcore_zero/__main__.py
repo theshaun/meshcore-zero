@@ -98,7 +98,9 @@ async def run(args):
         store.db.close()
         ui.updater.cleanup()
     if ui.restart_requested:
-        os.execv('/usr/share/APPLaunch/bin/meshcore-zero',['meshcore-zero'])
+        command=['meshcore-zero']
+        if args.data:command+=['--data',args.data]
+        os.execv('/usr/share/APPLaunch/bin/meshcore-zero',command)
 
 
 def main():

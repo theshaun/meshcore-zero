@@ -87,11 +87,12 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - **Escape** returns to Chats; Escape again exits to the launcher.
 - **Join** opens with `#` already entered. Type the channel name;
   entering another leading `#` is harmless.
+- In **Chats**, highlight a channel and press **Backspace** to leave it. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Direct messages are unaffected. To rejoin Public, open **Join**, press **Down** to select **Join / open Public channel**, then **Enter**.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Repeaters and room servers remain visible in the list.
 - Select a **Repeater** and press **Enter**, then confirm **Request Status** and enter its password. The password is masked. After entry, choose whether to save it (**No** is selected by default). A successful status request saves it encrypted on this device if you choose **Yes**; future requests reuse it for that repeater. Press **Backspace** on the repeater confirmation or status screen to forget it. Status shows battery voltage and an approximate single-cell Li-ion percentage, uptime, noise floor, last SNR and the repeater's UTC clock. Unsupported clock queries show **Unavailable**; other battery types may not have a meaningful percentage.
 - After startup checks and any update decision, MeshCore sends one flood advert to introduce your node. You can also use **Settings → Announce this node**.
-- **Settings** controls region, coding rate, node name, announcements, message sound, and app updates.
+- **Settings** controls region, coding rate, node name, announcements, message sound, identity import/export, and app updates.
 - The display follows the system **Settings → Screen → DarkTime** timeout, including **Never**. The first keypress wakes the screen without activating anything. Messages continue arriving while the screen is dark.
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
@@ -188,6 +189,29 @@ Direct messages can receive an explicit delivery acknowledgement.
 
 Public and hashtag channels are shared channels: anyone with the same channel
 name/key can read them. Channel display names are not authenticated identities.
+
+## Identity import and export
+
+Open **Settings → Identity: import / export** to move an identity between MeshCore
+firmware and this app. This uses the firmware's **64-byte expanded private key
+(128 hexadecimal characters)**. Existing app identities are converted on export
+without changing their public key. A 64-character public key or seed is not a
+firmware private-key export and cannot be pasted here.
+
+- **Import firmware key** accepts the 128-character key with masked entry.
+- **Import from file** reads a plain-text key file. The default is
+  `~/.local/share/meshcore-zero/identity-import.txt`; you can edit the path.
+- Import previews the resulting **public key**, with **Cancel** selected by
+  default. Confirming restarts the app with the new identity and keeps your
+  channels, messages and saved repeater passwords. **Restore previous identity**
+  lets you switch back to the last identity replaced through this menu.
+- **Export firmware key** asks for confirmation, then writes
+  `~/.local/share/meshcore-zero/identity-export.txt` with owner-only file access.
+  It does not show the private key on screen. Exporting again replaces this file.
+
+Paths follow your selected data directory if overridden. Keep key files and
+backups private, and remove transfer files when finished. Avoid operating two
+active devices with the same identity at once.
 
 ## Your data
 

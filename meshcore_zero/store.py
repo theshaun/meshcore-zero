@@ -44,7 +44,9 @@ class Store:
         self.db.execute('CREATE INDEX IF NOT EXISTS outgoing_hash ON messages(tx_hash)')
         # Pending messages are never silently retransmitted after a crash.
         self.db.execute("UPDATE messages SET status='interrupted' WHERE status='sending'")
-        self.db.execute("INSERT OR IGNORE INTO chats(id,name,kind,secret) VALUES('public','Public','channel',?)", (PUBLIC_KEY,))
+        if self.get('channels_initialized') is None:
+            self.db.execute("INSERT OR IGNORE INTO chats(id,name,kind,secret) VALUES('public','Public','channel',?)", (PUBLIC_KEY,))
+            self.db.execute("INSERT INTO settings VALUES('channels_initialized','1')")
         self.db.commit()
 
     def get(self, key, default=None):
@@ -70,6 +72,21 @@ class Store:
         with self.db:
             self.db.execute("INSERT INTO chats(id,name,kind) VALUES(?,?,'dm') ON CONFLICT(id) DO UPDATE SET name=excluded.name", (key, name))
         return key
+
+    def join_public(self):
+        if not self.db.execute("SELECT 1 FROM chats WHERE id='public'").fetchone():
+            if self.db.execute("SELECT count(*) FROM chats WHERE kind='channel'").fetchone()[0]>=32:
+                raise ValueError('Channel limit reached (32)')
+            with self.db:
+                self.db.execute("INSERT INTO chats(id,name,kind,secret) VALUES('public','Public','channel',?)",(PUBLIC_KEY,))
+        return 'public'
+
+    def leave(self,chat):
+        row=self.db.execute('SELECT kind FROM chats WHERE id=?',(chat,)).fetchone()
+        if not row or row['kind']!='channel':raise ValueError('Select a channel to leave')
+        with self.db:
+            self.db.execute('DELETE FROM messages WHERE chat=?',(chat,))
+            self.db.execute('DELETE FROM chats WHERE id=?',(chat,))
 
     def chats(self):
         return [dict(r) for r in self.db.execute("""SELECT c.*,

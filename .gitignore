@@ -11,3 +11,7 @@ dist/
 *.pem
 *.key
 *.bundle
+
+# Private identity transfer files
+identity-import.txt
+identity-export.txt

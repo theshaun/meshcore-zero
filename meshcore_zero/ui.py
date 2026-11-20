@@ -47,6 +47,11 @@ class UI:
         self.startup_release = None
         self.startup_update_choice = 0
         self.join_draft = '#'
+        self.join_public = False
+        self.leave_target = None
+        self.leave_choice = 1
+        from .identity_ui import IdentityUI
+        self.identity_ui = IdentityUI(self)
         self.repeater = None
         self.repeater_state = ''
         self.repeater_password = ''
@@ -74,6 +79,7 @@ class UI:
         self.screen = ('inbox','join','nodes','settings')[index]
         self.menu, self.selected = -1, 0
         self.draft = self.join_draft if index == 1 else ''
+        self.join_public = False
 
     async def repeater_work(self, public_key, password, save_password=None):
         from .repeater import request_status
@@ -112,6 +118,7 @@ class UI:
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
+            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -234,6 +241,24 @@ class UI:
                 self.screen = 'update'
                 self.start_update('download')
             return
+        if self.screen=='identity':
+            await self.identity_ui.key(key)
+            return
+        if self.leave_target:
+            if key in ('tab','up','down','left','right'):self.leave_choice=1-self.leave_choice
+            elif key=='escape' or key=='enter' and self.leave_choice==1:self.leave_target=None
+            elif key=='enter':
+                cid=self.leave_target['id']
+                try:
+                    if self.backend:self.backend.leave_channel(cid)
+                    else:self.store.leave(cid)
+                    self.drafts.pop(cid,None)
+                    if self.chat and self.chat['id']==cid:self.chat=None;self.draft=''
+                    self.leave_target=None
+                    self.selected=min(self.selected,max(0,len(self.store.chats())-1))
+                    self.notice('Channel left')
+                except ValueError as exc:self.notice(str(exc))
+            return
         if self.screen == 'repeater':
             if key == 'escape':
                 if self.repeater_task and not self.repeater_task.done():self.repeater_task.cancel()
@@ -303,7 +328,11 @@ class UI:
                 self.running = False
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 6
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 7
+            if key=='backspace' and self.screen=='inbox' and count:
+                chat=self.store.chats()[min(self.selected,count-1)]
+                if chat['kind']=='channel':self.leave_target=dict(chat);self.leave_choice=1
+                return
             if key in ('up', 'down'):
                 self.selected = max(0, min(max(0, count - 1), self.selected + (1 if key == 'down' else -1)))
             elif key == 'enter':
@@ -340,11 +369,16 @@ class UI:
                         self.start_update('check')
                     elif self.selected == 5:
                         self.store.set('message_sound', 'off' if self.store.get('message_sound','on') == 'on' else 'on')
+                    elif self.selected == 6:
+                        self.identity_ui.open()
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
                         except Exception as exc:
                             self.notice(str(exc))
+            return
+        if self.screen=='join' and key in ('up','down'):
+            self.join_public=not self.join_public
             return
         if self.screen == 'chat' and key in ('up','down'):
             self.scroll = max(0, self.scroll + (1 if key == 'up' else -1))
@@ -354,7 +388,7 @@ class UI:
         elif key == 'enter':
             try:
                 if self.screen == 'join':
-                    cid = self.store.join(self.draft)
+                    cid = self.store.join_public() if self.join_public else self.store.join(self.draft)
                     if self.backend:
                         self.backend.sync_channels()
                     self.open_chat(next(c for c in self.store.chats() if c['id'] == cid))
@@ -375,6 +409,7 @@ class UI:
             except (ValueError, RuntimeError) as exc:
                 self.notice(str(exc))
         elif len(key) == 1 and key.isprintable():
+            if self.screen=='join':self.join_public=False
             if self.screen == 'join' and key == '#' and self.draft == '#':
                 return
             limit = 150 if self.screen == 'chat' else 31
@@ -394,7 +429,8 @@ class UI:
             try:
                 await self.backend.send(chat, text)
             except Exception as exc:
-                self.drafts[chat['id']] = text
+                if self.store.db.execute('SELECT 1 FROM chats WHERE id=?',(chat['id'],)).fetchone():
+                    self.drafts[chat['id']] = text
                 if self.chat and self.chat['id'] == chat['id'] and not self.draft:
                     self.draft = text
                 self.notice(str(exc))
@@ -429,6 +465,8 @@ class UI:
             return self.draw_launch_notice()
         if self.startup_release:
             return self.draw_startup_update()
+        if self.screen=='identity':return self.identity_ui.draw()
+        if self.leave_target:return self.draw_leave()
         if self.screen == 'chat' and self._chat_cache_key == self.render_key(False):
             img=self._chat_cache.copy()
             self.draw_composer(img)
@@ -442,6 +480,7 @@ class UI:
         hint = 'Tab menu    ↑↓ select    Enter open'
         if self.screen == 'inbox':
             chats = self.store.chats()
+            if not chats:text(10,55,'No conversations · Tab to Join',MUTED,12)
             self.selected = min(self.selected, max(0,len(chats)-1))
             start = max(0,self.selected-3)
             for i, chat in enumerate(chats[start:start+4],start):
@@ -460,13 +499,19 @@ class UI:
                 if chat['status'] in ('failed','unconfirmed','sending','interrupted'):
                     preview = chat['status'].capitalize() + ' · ' + preview
                 text(left,y+17,preview,MUTED,10,width=302-left)
+            if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  ↑↓ select  Enter open  Backspace leave'
         elif self.screen in ('join','name'):
             text(10,27,'Join a hashtag channel' if self.screen=='join' else 'Your node name',size=14,bold=True)
             text(10,49,'Same hashtag connects everyone.' if self.screen=='join' else 'Shown to other people on the mesh.',MUTED,10)
-            d.rounded_rectangle((8,74,311,99),4,fill=SELECT)
+            d.rounded_rectangle((8,74,311,99),4,fill=SELECT if self.screen!='join' or not self.join_public else PANEL)
             text(15,78,(self.draft or ('#asheville' if self.screen=='join' else 'Your name'))+'|',ACCENT,13,width=287)
-            text(10,109,'Hashtag channels are public.' if self.screen=='join' else 'Enter saves your name.',MUTED,10)
-            hint = 'Enter save    Esc back'
+            if self.screen=='join':
+                d.rounded_rectangle((8,111,311,137),4,fill=SELECT if self.join_public else PANEL)
+                text(15,116,'Join / open Public channel',ACCENT if self.join_public else MUTED,11)
+                hint='↑↓ choose   Enter join   Esc back'
+            else:
+                text(10,109,'Enter saves your name.',MUTED,10)
+                hint = 'Enter save    Esc back'
         elif self.screen == 'nodes':
             nodes = self.nodes()
             if not nodes:
@@ -531,7 +576,7 @@ class UI:
             hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title()]
+            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export']
             start=max(0,self.selected-4)
             for i in range(start,min(len(labels),start+5)):
                 label=labels[i]
@@ -596,6 +641,20 @@ class UI:
         if self.screen == 'chat':
             self._chat_cache_key=self.render_key(False)
             self._chat_cache=img.copy()
+        return img
+
+    def draw_leave(self):
+        img=Image.new('RGB',(320,170),BG);d=ImageDraw.Draw(img);self.draw_tabs(img)
+        def text(x,y,value,color=TEXT,size=11,bold=False):self.text.draw(img,(x,y),value,color,size,bold,width=300)
+        text(10,30,'Leave '+self.leave_target['name']+'?',size=14,bold=True)
+        text(10,62,'Removes this channel and its saved',MUTED)
+        text(10,79,'messages from this device.',MUTED)
+        for i,(x,label) in enumerate(((8,'Leave'),(166,'Cancel'))):
+            selected=i==self.leave_choice
+            d.rounded_rectangle((x,113,x+145,142),4,fill=SELECT if selected else PANEL,outline=ACCENT if selected else PANEL)
+            text(x+(145-self.text.width(label,11,selected))/2,120,label,ACCENT if selected else TEXT,11,selected)
+        text(8,157,'Tab choose   Enter select   Esc cancel',MUTED,9)
+        self.draw_notice(img)
         return img
 
     def draw_launch_notice(self):

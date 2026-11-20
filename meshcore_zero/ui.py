@@ -570,6 +570,7 @@ class UI:
                 y=23+(i-start)*32
                 d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if i==self.selected else PANEL)
                 label=NAMES[region]+(' · experimental' if region=='JP' else '')
+                if region=='SCO':label+=' · sco / 3B'
                 text(12,y+1,label,bold=True,width=292)
                 detail=f"{cfg['frequency']/1e6:.3f} MHz  SF{cfg['spreading_factor']}  BW{cfg['bandwidth']/1000:g}  CR4/{cfg['coding_rate']}"
                 text(12,y+18,detail,MUTED,9,width=292)

@@ -164,7 +164,7 @@ the newer board’s antenna-switch expander.
 
 **Settings → Region** offers USA, Europe (legacy), Japan (experimental), Canada,
 Australia, New Zealand, EU/UK, Switzerland, Czechia, Netherlands, Portugal,
-Thailand, Vietnam, and Slovakia. Restart to apply; saved coding-rate overrides and your
+Thailand, Vietnam, Slovakia, and Scotland (ScotMesh). Restart to apply; saved coding-rate overrides and your
 existing US/EU configuration are preserved.
 
 Japan uses 920.800 MHz / SF12 / BW125 / CR4/8 at 13 dBm, with energy-based
@@ -189,6 +189,13 @@ Direct messages can receive an explicit delivery acknowledgement.
 
 Public and hashtag channels are shared channels: anyone with the same channel
 name/key can read them. Channel display names are not authenticated identities.
+
+The **Scotland · ScotMesh** preset uses the UK/EU radio settings (869.618 MHz,
+BW62.5, SF8, CR4/8), 3-byte path hashes, and default flood scope **sco**.
+Restart to apply it. The default scope covers channel floods and startup/manual
+flood adverts; joining a channel does not select a separate scope. Local
+per-channel scopes such as `edi`, `gla`, or `ioi` are not configurable yet.
+See the [ScotMesh setup guide](https://wiki.scotmesh.uk/en/MeshCore/getting-started).
 
 ## Identity import and export
 

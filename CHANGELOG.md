@@ -5,6 +5,12 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.21 — 2026-11-20
+
+- Add an opt-in Scotland / ScotMesh preset following the community wiki: UK/EU radio settings, 3-byte path hashes and default flood scope sco.
+- Apply firmware-compatible scope transport codes to channel floods and startup/manual flood adverts before transmission; retain existing settings for other regions.
+- Document Scotland setup and the current lack of per-channel scope overrides.
+
 ## 0.1.20 — 2026-11-20
 
 - Submit the tested revision to the app store and refresh its listing with channel leaving, identity transfer and updater progress.

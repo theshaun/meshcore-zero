@@ -19,6 +19,7 @@ Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 | Portugal (868) | 869.618 | 62.5 | 7 | 4/6 | 14 | 1 |
 | Thailand | 921.000 | 62.5 | 7 | 4/5 | 13 | 1 |
 | Vietnam (narrow) | 920.250 | 62.5 | 8 | 4/5 | 13 | 1 |
+| Scotland / ScotMesh | 869.618 | 62.5 | 8 | 4/8 | 14 | 3 |
 | Slovakia | 869.618 | 62.5 | 7 | 4/5 | 14 | 2 |
 
 These are offline community starting points, not universal national settings or
@@ -30,6 +31,22 @@ specify them. The app deliberately excludes 433 MHz and presets outside the
 CAP's published 868–923 MHz range. US peer messaging has been tested; other
 profiles need local field testing. No automatic frequency changes or online
 preset downloads take place.
+
+## Scotland / ScotMesh
+
+The separate Scotland preset follows the [ScotMesh setup guide](https://wiki.scotmesh.uk/en/MeshCore/getting-started)
+and [scope guidance](https://wiki.scotmesh.uk/en/MeshCore/scopes), checked 2026-11-20:
+UK/EU radio settings, default scope `sco` and 3-byte path hashes. The public
+transport key is derived from `#sco` using MeshCore's SHA-256 convention; it is
+routing scope, not an extra encryption password. Channel floods and flood
+adverts use this default. Direct routes retain their routing mode. Other
+presets remain unscoped and keep their existing path-hash defaults.
+
+Select Scotland explicitly and restart; installing this update does not switch
+your region or join channels. Join `#scotland` yourself for the community chat.
+Per-channel local scope overrides are not exposed yet, so channels under this
+preset all inherit `sco`. Scottish on-air forwarding still needs local field
+validation; tests verify serialized scope codes and 3-byte path encoding offline.
 
 ## Japan (experimental)
 

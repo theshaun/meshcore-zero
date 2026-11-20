@@ -1,7 +1,8 @@
 """Offline community presets; RF choices are not equipment certification.
 
 Source: MeshCore config API, retrieved 2026-11-18. Japan uses the community
-920.800/SF12/BW125/CR8 proposal, not a preset in that API. See docs/radio.md.
+920.800/SF12/BW125/CR8 proposal, not a preset in that API.
+Scotland follows the ScotMesh wiki (2026-11-20). See docs/radio.md.
 """
 PRESETS = {
     'US': dict(frequency=910525000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=20),
@@ -19,12 +20,22 @@ PRESETS = {
     'TH': dict(frequency=921000000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=13),
     'VN': dict(frequency=920250000, bandwidth=62500, spreading_factor=8, coding_rate=5, tx_power=13),
     'SK': dict(frequency=869618000, bandwidth=62500, spreading_factor=7, coding_rate=5, tx_power=14),
+    'SCO': dict(frequency=869618000, bandwidth=62500, spreading_factor=8, coding_rate=8, tx_power=14),
 }
 NAMES = {'US':'USA', 'EU':'Europe (legacy)', 'JP':'Japan', 'CA':'Canada',
          'AU':'Australia', 'NZ':'New Zealand', 'UK':'EU / UK', 'CH':'Switzerland',
-         'CZ':'Czechia', 'NL':'Netherlands', 'PT':'Portugal', 'TH':'Thailand', 'VN':'Vietnam', 'SK':'Slovakia'}
-PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2}
-EUROPE = {'EU','UK','CH','CZ','NL','PT','SK'}
+         'CZ':'Czechia', 'NL':'Netherlands', 'PT':'Portugal', 'TH':'Thailand', 'VN':'Vietnam', 'SK':'Slovakia', 'SCO':'Scotland · ScotMesh'}
+PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2, 'SCO':3}
+DEFAULT_SCOPES = {'SCO':'sco'}
+EUROPE = {'EU','UK','CH','CZ','NL','PT','SK','SCO'}
 
 def cooldown_factor(region):
     return 99 if region in EUROPE else 9
+
+
+def configure_protocol(engine, region):
+    """Apply preset path encoding and default scope before any startup advert."""
+    from openhop_core.protocol.transport_keys import get_auto_key_for
+    engine.set_path_hash_mode(PATH_BYTES.get(region,1)-1)
+    scope=DEFAULT_SCOPES.get(region)
+    engine.set_default_flood_scope(scope,get_auto_key_for(scope) if scope else None)

@@ -14,7 +14,7 @@ from collections import OrderedDict
 
 from .store import radio_config
 from .cap import CapPower
-from .regions import PATH_BYTES, EUROPE
+from .regions import configure_protocol, EUROPE
 from .regional_radio import RegionalRadioMixin
 
 log = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class Backend:
             self.engine = CompanionRadio(self.radio, identity,
                 node_name=self.store.get('name', 'Zero-' + identity.get_public_key().hex()[:4]),
                 radio_config=cfg)
-            self.engine.set_path_hash_mode(PATH_BYTES.get(region,1)-1)
+            configure_protocol(self.engine,region)
             self.engine.contacts.load_from_dicts([json.loads(r[0]) for r in self.store.db.execute('SELECT data FROM nodes')])
             self.engine.set_autoadd_config(0x0f)
             self.sync_channels()

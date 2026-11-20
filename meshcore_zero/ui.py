@@ -50,6 +50,8 @@ class UI:
         self.repeater_clock = None
         self.repeater_error = ''
         self.repeater_task = None
+        from .repeater_passwords import RepeaterPasswords
+        self.repeater_passwords = RepeaterPasswords(store)
         self.battery = None
         import asyncio
         self.launch_state = ''
@@ -68,22 +70,27 @@ class UI:
         self.menu, self.selected = -1, 0
         self.draft = self.join_draft if index == 1 else ''
 
-    async def repeater_work(self, public_key, password):
+    async def repeater_work(self, public_key, password, save_password=None):
         from .repeater import request_status
         try:
             self.repeater_stats,self.repeater_clock=await request_status(self.backend,public_key,password)
             self.repeater_state='result'
+            try:
+                if save_password is True:self.repeater_passwords.save(public_key,password)
+                elif save_password is False:self.repeater_passwords.forget(public_key)
+            except Exception:
+                self.notice('Status received · password could not be saved')
         except Exception as exc:
             self.repeater_error=str(exc)
             self.repeater_state='error'
         finally:
             password=''
 
-    def start_repeater_status(self):
+    def start_repeater_status(self, save_password=None):
         import asyncio
         password,self.repeater_password=self.repeater_password,''
         self.repeater_state='busy'
-        task=asyncio.create_task(self.repeater_work(self.repeater['public_key'],password))
+        task=asyncio.create_task(self.repeater_work(self.repeater['public_key'],password,save_password))
         self.repeater_task=task
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
@@ -207,19 +214,32 @@ class UI:
                 if self.repeater_task and not self.repeater_task.done():self.repeater_task.cancel()
                 self.repeater_password=''
                 self.screen='nodes'
-            elif self.repeater_state=='confirm':
+            elif key=='backspace' and self.repeater_state in ('confirm','result','error'):
+                self.repeater_passwords.forget(self.repeater['public_key'])
+                self.notice('Saved password removed')
+            elif self.repeater_state in ('confirm','save'):
                 if key in ('tab','left','right','up','down'):self.repeater_choice=1-self.repeater_choice
                 elif key=='enter':
-                    if self.repeater_choice==0:self.repeater_state='password'
+                    if self.repeater_state=='save':
+                        self.start_repeater_status(save_password=self.repeater_choice==0)
+                    elif self.repeater_choice==0:
+                        saved=self.repeater_passwords.get(self.repeater['public_key'])
+                        if saved is not None:
+                            self.repeater_password=saved
+                            self.start_repeater_status()
+                        else:self.repeater_state='password'
                     else:self.screen='nodes'
             elif self.repeater_state=='password':
                 if key=='backspace':self.repeater_password=self.repeater_password[:-1]
-                elif key=='enter':self.start_repeater_status()
+                elif key=='enter':self.repeater_state='save';self.repeater_choice=1
                 elif len(key)==1 and key.isprintable():
                     if len((self.repeater_password+key).encode())<=15:self.repeater_password+=key
                     else:self.notice('Password limit: 15 UTF-8 bytes')
             elif self.repeater_state in ('result','error') and key=='enter':
-                self.repeater_state='password';self.repeater_password=''
+                saved=self.repeater_passwords.get(self.repeater['public_key']) if self.repeater_state=='result' else None
+                if saved is not None:
+                    self.repeater_password=saved;self.start_repeater_status()
+                else:self.repeater_state='password';self.repeater_password=''
             return
         if self.screen == 'update':
             if self.update_state == 'busy': return
@@ -439,20 +459,23 @@ class UI:
             hint = '↑↓ select    Enter open    Esc back'
         elif self.screen == 'repeater':
             text(10,25,self.repeater.get('name','Repeater'),size=13,bold=True,width=300)
-            if self.repeater_state=='confirm':
-                text(10,56,'Request Status?',size=14,bold=True)
-                text(10,79,'Authenticate to read this repeater.',MUTED,10)
+            if self.repeater_state in ('confirm','save'):
+                saving=self.repeater_state=='save'
+                text(10,56,'Save password?' if saving else 'Request Status?',size=14,bold=True)
+                saved=self.repeater_passwords.get(self.repeater['public_key']) is not None
+                detail='Save on this device after a successful request.' if saving else 'Saved password will be used.' if saved else 'Authenticate to read this repeater.'
+                text(10,79,detail,MUTED,10,width=300)
                 for i,(x,label) in enumerate(((10,'Yes'),(168,'No'))):
                     selected=i==self.repeater_choice
                     d.rounded_rectangle((x,108,x+140,137),4,fill=SELECT if selected else PANEL,outline=ACCENT if selected else PANEL)
                     text(x+(140-self.text.width(label,12,selected))/2,114,label,ACCENT if selected else TEXT,12,selected)
-                hint='Tab / arrows choose    Enter select'
+                hint='Tab / arrows choose   Enter select' if saving or not saved else 'Enter request   Backspace forget   Esc back'
             elif self.repeater_state=='password':
                 text(10,57,'Repeater password',size=12,bold=True)
                 d.rounded_rectangle((8,80,311,105),4,fill=SELECT)
                 text(15,84,'•'*len(self.repeater_password)+'|',ACCENT,13,width=287)
-                text(10,119,'Used once · never saved',MUTED,10)
-                hint='Enter request    Esc cancel'
+                text(10,119,'Next: choose whether to save locally',MUTED,10)
+                hint='Enter continue    Esc cancel'
             elif self.repeater_state=='busy':
                 text(10,59,'Authenticating / requesting status…',size=12,width=300)
                 text(10,85,'Waiting for the repeater to reply.',MUTED,11)
@@ -468,7 +491,7 @@ class UI:
                     text(10,y,label,MUTED,10,width=85)
                     text(98,y,value,TEXT,10,width=214)
                 text(10,143,'*Estimated for single-cell Li-ion; voltage reported',MUTED,8,width=300)
-                hint='Enter request again    Esc back'
+                hint='Enter request again   Backspace forget   Esc back'
         elif self.screen == 'regions':
             regions=list(PRESETS)
             start=max(0,self.selected-3)

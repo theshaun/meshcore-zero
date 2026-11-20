@@ -27,7 +27,7 @@ class RepeaterTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.ui.text,'draw',wraps=self.ui.text.draw) as draw:self.ui.render()
         self.assertFalse(any('secret' in str(c) for c in draw.call_args_list))
         with patch('meshcore_zero.repeater.request_status',new=AsyncMock(return_value=({'batt_milli_volts':3900},1700000000))) as request:
-            self.ui.backend=object();await self.ui.key('enter');await self.ui.repeater_task
+            self.ui.backend=object();await self.ui.key('enter');self.assertEqual(self.ui.repeater_state,'save');self.assertEqual(self.ui.repeater_choice,1);await self.ui.key('enter');await self.ui.repeater_task
         request.assert_awaited_once_with(self.ui.backend,KEY,'secret')
         self.assertEqual(self.ui.repeater_state,'result');self.assertEqual(self.ui.repeater_password,'')
         self.assertFalse(any('secret' in str(tuple(row)) for row in self.store.db.execute('SELECT * FROM settings')))

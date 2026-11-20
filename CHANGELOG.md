@@ -5,6 +5,13 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.18 — 2026-11-20
+
+- Ask whether to save a repeater password after entry, with No selected by default.
+- Save only after a successful authenticated status request; encrypt credentials locally with a private device-local key and reuse them by repeater public key.
+- Allow Backspace on repeater confirmation/status screens to forget the saved password; failed requests do not replace credentials.
+- Publish the user-tested startup advert, immediate Tab navigation, message chime fix and repeater status features to the app store.
+
 ## 0.1.17 — 2026-11-20 — test build
 
 - Send one flood advert after startup radio/update checks and any update decision are complete.

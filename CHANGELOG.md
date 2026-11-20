@@ -7,6 +7,8 @@
 
 ## 0.1.21 — 2026-11-20
 
+- Publish the APPLaunch/LCD-verified revision to GitHub and the app store; verify global and China registry checksums. Preserve the test device's existing identity, channels, messages and US radio profile.
+
 - Add an opt-in Scotland / ScotMesh preset following the community wiki: UK/EU radio settings, 3-byte path hashes and default flood scope sco.
 - Apply firmware-compatible scope transport codes to channel floods and startup/manual flood adverts before transmission; retain existing settings for other regions.
 - Document Scotland setup and the current lack of per-channel scope overrides.

@@ -3,6 +3,8 @@
 Standalone MeshCore messaging for M5Stack Cardputer Zero with the SX1262 LoRa
 CAP. Chat over LoRa without a phone, companion radio, or internet connection.
 
+**Test build:** v0.1.17 adds startup flood adverts, immediate Tab navigation, repeater status and improved chimes. It is available for testing as a GitHub prerelease; the app-store version remains v0.1.16 until testing is complete. The usage notes below include these test-build features.
+
 ![Inbox](screenshots/inbox.png)
 ![Conversation](screenshots/chat.png)
 
@@ -62,7 +64,7 @@ install a version newer than the app-store version.
 
 ## Using MeshCore
 
-- **Tab** cycles through Chats, Join, Nodes, and Settings; **Enter**, **X**, or **Fn+X** opens the focused tab.
+- **Tab** cycles through Chats, Join, Nodes, and Settings and immediately displays each page. **Enter** acts on the visible page.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
 - Type in a conversation and press **Enter** to send.
@@ -70,7 +72,9 @@ install a version newer than the app-store version.
 - **Join** opens with `#` already entered. Type the channel name;
   entering another leading `#` is harmless.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
-  a direct message. Infrastructure nodes remain visible in the list.
+  a direct message. Repeaters and room servers remain visible in the list.
+- Select a **Repeater** and press **Enter**, then confirm **Request Status** and enter its password. The password is masked and never saved. Status shows battery voltage and an approximate single-cell Li-ion percentage, uptime, noise floor, last SNR and the repeater's UTC clock. Unsupported clock queries show **Unavailable**; other battery types may not have a meaningful percentage.
+- After startup checks and any update decision, MeshCore sends one flood advert to introduce your node. You can also use **Settings → Announce this node**.
 - **Settings** controls region, coding rate, node name, announcements, message sound, and app updates.
 - The display follows the system **Settings → Screen → DarkTime** timeout, including **Never**. The first keypress wakes the screen without activating anything. Messages continue arriving while the screen is dark.
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.

@@ -223,6 +223,7 @@ class Backend:
             ok = await self.engine.advertise(flood=True)
             self.next_tx = time.monotonic() + (60 if self.region in EUROPE else 6)
             self.notify('Announcement sent' if ok else 'Announcement failed')
+            return ok
 
     async def close(self):
         if self.engine:

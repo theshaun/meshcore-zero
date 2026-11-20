@@ -57,6 +57,10 @@ async def run(args):
         update_task=asyncio.create_task(check_at_startup(ui))
         ui.tasks.add(update_task)
         update_task.add_done_callback(ui.tasks.discard)
+        from .startup_advert import announce_after_checks
+        advert_task=asyncio.create_task(announce_after_checks(ui,backend,startup,update_task))
+        ui.tasks.add(advert_task)
+        advert_task.add_done_callback(ui.tasks.discard)
         from .battery import monitor
         battery_task=asyncio.create_task(monitor(ui))
         ui.tasks.add(battery_task)

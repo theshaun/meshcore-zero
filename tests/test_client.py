@@ -78,7 +78,7 @@ class StoreTests(unittest.TestCase):
     def test_join_field_prefills_and_keeps_one_hashtag(self):
         async def scenario():
             ui=UI(self.store)
-            await ui.key('tab');await ui.key('tab');await ui.key('enter')
+            await ui.key('tab')
             self.assertEqual(ui.draft,'#')
             await ui.key('backspace')
             self.assertEqual(ui.draft,'#')
@@ -107,7 +107,7 @@ class StoreTests(unittest.TestCase):
     def test_ui_tab_join_and_open(self):
         async def scenario():
             ui=UI(self.store)
-            await ui.key('tab'); await ui.key('tab'); await ui.key('enter')
+            await ui.key('tab')
             self.assertEqual(ui.screen,'join')
             for char in 'meshcore': await ui.key(char)
             await ui.key('enter')

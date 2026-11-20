@@ -25,23 +25,19 @@ class TabTests(unittest.TestCase):
         self.store=Store(self.tmp.name);self.addCleanup(self.store.db.close)
         self.ui=UI(self.store)
 
-    def test_x_and_fn_x_open_focused_tab_without_changing_draft_typing(self):
+    def test_tab_switches_pages_immediately_and_preserves_drafts(self):
         import asyncio
-        from meshcore_zero.hardware import Keyboard
         async def scenario():
-            keyboard=Keyboard.__new__(Keyboard);keyboard.shift=set()
-            for code in (45,108):
-                key=keyboard.translate(1,code,1)
-                for index,screen in enumerate(('inbox','join','nodes','settings')):
-                    self.ui.screen='inbox';self.ui.menu=index
-                    await self.ui.key(key)
-                    self.assertEqual(self.ui.screen,screen)
-                    self.assertEqual(self.ui.menu,-1)
-                    self.assertEqual(self.ui.draft,'#' if screen=='join' else '')
-            self.ui.open_chat(self.store.chats()[0])
-            self.ui.draft=''
-            await self.ui.key('x')
-            self.assertEqual(self.ui.draft,'x')
+            for expected in ('join','nodes','settings','inbox'):
+                await self.ui.key('tab')
+                self.assertEqual(self.ui.screen,expected)
+                self.assertEqual(self.ui.menu,-1)
+            self.ui.open_chat(self.store.chats()[0]);self.ui.draft='x draft'
+            await self.ui.key('tab');self.assertEqual(self.ui.screen,'join')
+            self.ui.draft='#draft'
+            for _ in range(4):await self.ui.key('tab')
+            self.assertEqual(self.ui.draft,'#draft')
+            self.ui.open_chat(self.store.chats()[0]);self.assertEqual(self.ui.draft,'x draft')
         asyncio.run(scenario())
 
     def test_current_section_highlight_in_nested_screens_and_centered_titles(self):

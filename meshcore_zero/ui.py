@@ -41,6 +41,15 @@ class UI:
         self.restart_requested = False
         self.startup_release = None
         self.startup_update_choice = 0
+        self.join_draft = '#'
+        self.repeater = None
+        self.repeater_state = ''
+        self.repeater_password = ''
+        self.repeater_choice = 0
+        self.repeater_stats = {}
+        self.repeater_clock = None
+        self.repeater_error = ''
+        self.repeater_task = None
         self.battery = None
         import asyncio
         self.launch_state = ''
@@ -50,6 +59,35 @@ class UI:
     def notice(self, text):
         self.toast, self.toast_until = text, time.monotonic() + 4
 
+    def switch_tab(self, index):
+        if self.screen == 'chat':
+            self.drafts[self.chat['id']] = self.draft
+        if self.screen == 'join':
+            self.join_draft = self.draft
+        self.screen = ('inbox','join','nodes','settings')[index]
+        self.menu, self.selected = -1, 0
+        self.draft = self.join_draft if index == 1 else ''
+
+    async def repeater_work(self, public_key, password):
+        from .repeater import request_status
+        try:
+            self.repeater_stats,self.repeater_clock=await request_status(self.backend,public_key,password)
+            self.repeater_state='result'
+        except Exception as exc:
+            self.repeater_error=str(exc)
+            self.repeater_state='error'
+        finally:
+            password=''
+
+    def start_repeater_status(self):
+        import asyncio
+        password,self.repeater_password=self.repeater_password,''
+        self.repeater_state='busy'
+        task=asyncio.create_task(self.repeater_work(self.repeater['public_key'],password))
+        self.repeater_task=task
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+
     def render_key(self, include_draft=True):
         """Visible model revision; idle input polling must not repaint the UI."""
         return (self.store.db.total_changes, self.screen, self.menu, self.selected,
@@ -58,6 +96,8 @@ class UI:
             self.update_state, self.update_message, len(self.password), self.battery,
             self.launch_state, self.launch_error,
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
+            self.repeater_state, self.repeater_choice, len(self.repeater_password),
+            repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -162,6 +202,25 @@ class UI:
                 self.screen = 'update'
                 self.start_update('download')
             return
+        if self.screen == 'repeater':
+            if key == 'escape':
+                if self.repeater_task and not self.repeater_task.done():self.repeater_task.cancel()
+                self.repeater_password=''
+                self.screen='nodes'
+            elif self.repeater_state=='confirm':
+                if key in ('tab','left','right','up','down'):self.repeater_choice=1-self.repeater_choice
+                elif key=='enter':
+                    if self.repeater_choice==0:self.repeater_state='password'
+                    else:self.screen='nodes'
+            elif self.repeater_state=='password':
+                if key=='backspace':self.repeater_password=self.repeater_password[:-1]
+                elif key=='enter':self.start_repeater_status()
+                elif len(key)==1 and key.isprintable():
+                    if len((self.repeater_password+key).encode())<=15:self.repeater_password+=key
+                    else:self.notice('Password limit: 15 UTF-8 bytes')
+            elif self.repeater_state in ('result','error') and key=='enter':
+                self.repeater_state='password';self.repeater_password=''
+            return
         if self.screen == 'update':
             if self.update_state == 'busy': return
             if key in ('escape','tab'):
@@ -185,13 +244,10 @@ class UI:
                     self.notice('JP experimental · see README' if chosen=='JP' else 'Region saved · restart app to apply')
                 self.screen,self.selected='settings',0
             elif key=='tab':
-                self.screen,self.menu,self.selected='inbox',0,0
+                self.switch_tab(0)
             return
         if key == 'tab':
-            if self.screen == 'chat':
-                self.drafts[self.chat['id']] = self.draft
-            self.menu = (self.menu + 1) % 4
-            self.screen = 'inbox'
+            self.switch_tab((self.active_tab()+1)%4)
             return
         if key == 'escape':
             if self.screen == 'chat':
@@ -200,13 +256,6 @@ class UI:
                 self.screen, self.menu, self.selected, self.draft = 'inbox', -1, 0, ''
             else:
                 self.running = False
-            return
-        if self.menu >= 0:
-            if key in ('left', 'right'):
-                self.menu = (self.menu + (1 if key == 'right' else -1)) % 4
-            if key in ('enter','x','X','down'):
-                self.screen = ['inbox', 'join', 'nodes', 'settings'][self.menu]
-                self.menu, self.selected, self.draft = -1, 0, '#' if self.screen == 'join' else ''
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
             count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 6
@@ -217,6 +266,14 @@ class UI:
                     self.open_chat(self.store.chats()[min(self.selected,count-1)])
                 elif self.screen == 'nodes' and count:
                     node = self.nodes()[self.selected]
+                    if node.get('adv_type') == 2:
+                        self.repeater=node
+                        self.screen='repeater'
+                        self.repeater_state='confirm'
+                        self.repeater_choice=0
+                        self.repeater_password=''
+                        self.repeater_stats={};self.repeater_clock=None;self.repeater_error=''
+                        return
                     if node.get('adv_type') != 1:
                         self.notice('Choose a chat node to send a DM')
                         return
@@ -377,8 +434,41 @@ class UI:
                 y=23+i*32
                 d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if absolute==self.selected else PANEL)
                 text(12,y+1,node.get('name','Unknown'),bold=True,width=290)
-                text(12,y+18,('Chat' if node.get('adv_type')==1 else 'Infrastructure')+' · '+node['public_key'][:12],MUTED,10)
-            hint = '↑↓ select    Enter DM    Esc back'
+                kind={1:'Chat',2:'Repeater',3:'Room server'}.get(node.get('adv_type'),'Node')
+                text(12,y+18,kind+' · '+node['public_key'][:12],MUTED,10)
+            hint = '↑↓ select    Enter open    Esc back'
+        elif self.screen == 'repeater':
+            text(10,25,self.repeater.get('name','Repeater'),size=13,bold=True,width=300)
+            if self.repeater_state=='confirm':
+                text(10,56,'Request Status?',size=14,bold=True)
+                text(10,79,'Authenticate to read this repeater.',MUTED,10)
+                for i,(x,label) in enumerate(((10,'Yes'),(168,'No'))):
+                    selected=i==self.repeater_choice
+                    d.rounded_rectangle((x,108,x+140,137),4,fill=SELECT if selected else PANEL,outline=ACCENT if selected else PANEL)
+                    text(x+(140-self.text.width(label,12,selected))/2,114,label,ACCENT if selected else TEXT,12,selected)
+                hint='Tab / arrows choose    Enter select'
+            elif self.repeater_state=='password':
+                text(10,57,'Repeater password',size=12,bold=True)
+                d.rounded_rectangle((8,80,311,105),4,fill=SELECT)
+                text(15,84,'•'*len(self.repeater_password)+'|',ACCENT,13,width=287)
+                text(10,119,'Used once · never saved',MUTED,10)
+                hint='Enter request    Esc cancel'
+            elif self.repeater_state=='busy':
+                text(10,59,'Authenticating / requesting status…',size=12,width=300)
+                text(10,85,'Waiting for the repeater to reply.',MUTED,11)
+                hint='Esc cancel'
+            elif self.repeater_state=='error':
+                text(10,57,'Request failed',size=14,bold=True)
+                text(10,84,self.repeater_error,MUTED,11,width=300)
+                hint='Enter retry    Esc back'
+            else:
+                from .repeater import status_lines
+                for i,(label,value) in enumerate(status_lines(self.repeater_stats,self.repeater_clock)):
+                    y=47+i*19
+                    text(10,y,label,MUTED,10,width=85)
+                    text(98,y,value,TEXT,10,width=214)
+                text(10,143,'*Estimated for single-cell Li-ion; voltage reported',MUTED,8,width=300)
+                hint='Enter request again    Esc back'
         elif self.screen == 'regions':
             regions=list(PRESETS)
             start=max(0,self.selected-3)
@@ -466,7 +556,7 @@ class UI:
     def active_tab(self):
         if self.screen in ('inbox','chat'): return 0
         if self.screen == 'join': return 1
-        if self.screen == 'nodes': return 2
+        if self.screen in ('nodes','repeater'): return 2
         return 3
 
     def draw_tabs(self,img):

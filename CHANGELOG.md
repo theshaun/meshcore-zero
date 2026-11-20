@@ -5,6 +5,15 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.17 — 2026-11-20 — test build
+
+- Send one flood advert after startup radio/update checks and any update decision are complete.
+- Switch pages immediately with Tab, preserving chat and Join drafts.
+- Fix silent short message chimes with a longer stereo chime and speaker wake-up lead-in.
+- Label repeaters in Nodes and add Request Status confirmation and a masked, unsaved repeater password.
+- Display reported battery voltage with a marked single-cell Li-ion charge estimate, uptime, noise floor, last SNR and repeater UTC clock where supported.
+- Hold this revision out of the app store for user testing.
+
 ## 0.1.16 — 2026-11-19
 
 - Check GitHub's latest stable release once at startup without blocking radio initialization or keyboard input.

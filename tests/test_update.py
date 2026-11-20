@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,10 @@ from unittest.mock import patch
 from meshcore_zero.update import Updater, REPO, version
 from meshcore_zero.ui import UI, GREEN, UNCONFIRMED
 from meshcore_zero.store import Store
+
+class Response(io.BytesIO):
+    def __init__(self,data,headers=None):
+        super().__init__(data);self.headers=headers if headers is not None else {'Content-Length':str(len(data))};self.url='https://example.invalid/package'
 
 class UpdateTests(unittest.TestCase):
     def release(self):
@@ -25,13 +30,14 @@ class UpdateTests(unittest.TestCase):
         with patch('meshcore_zero.update.fetch',return_value=self.release()): self.assertFalse(Updater('0.1.10').check())
 
     def test_download_integrity_and_cleanup(self):
-        u=Updater('0.1.8');payload=b'package test';sha=hashlib.sha256(payload).hexdigest()
+        work=tempfile.TemporaryDirectory();self.addCleanup(work.cleanup)
+        u=Updater('0.1.8',cache_dir=work.name);payload=b'package test';sha=hashlib.sha256(payload).hexdigest()
         with patch('meshcore_zero.update.fetch',return_value=self.release()):u.check()
         manifest=(sha+'  '+u.release[1]+'\n').encode()
-        with patch('meshcore_zero.update.fetch',side_effect=[manifest,payload]): u.download()
+        with patch('meshcore_zero.update.fetch',return_value=manifest), patch('meshcore_zero.update.open_download',return_value=Response(payload)): u.download()
         path=u.path;self.assertEqual(path.read_bytes(),payload);self.assertEqual(path.stat().st_mode&0o777,0o600)
         u.cleanup();self.assertFalse(path.exists())
-        with patch('meshcore_zero.update.fetch',side_effect=[manifest,b'corrupted']):
+        with patch('meshcore_zero.update.fetch',return_value=manifest), patch('meshcore_zero.update.open_download',return_value=Response(b'corrupted')):
             with self.assertRaises(ValueError):u.download()
         self.assertIsNone(u.path)
 

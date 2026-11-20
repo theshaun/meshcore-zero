@@ -35,15 +35,17 @@ below.
 To install directly from GitHub instead, SSH into your Cardputer Zero and run:
 
 ```sh
-curl -fL https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb -o /tmp/meshcore-zero.deb
-sudo apt install /tmp/meshcore-zero.deb
+mkdir -p "$HOME/.cache/meshcore-zero"
+curl -fL https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb -o "$HOME/.cache/meshcore-zero/meshcore-zero.deb"
+sudo apt install "$HOME/.cache/meshcore-zero/meshcore-zero.deb"
 ```
 
 If you prefer `wget`, use it for the download instead:
 
 ```sh
-wget -O /tmp/meshcore-zero.deb https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb
-sudo apt install /tmp/meshcore-zero.deb
+mkdir -p "$HOME/.cache/meshcore-zero"
+wget -O "$HOME/.cache/meshcore-zero/meshcore-zero.deb" https://github.com/unagisan69/meshcore-zero/releases/latest/download/meshcore-zero_arm64.deb
+sudo apt install "$HOME/.cache/meshcore-zero/meshcore-zero.deb"
 ```
 
 Open **MeshCore** in APPLaunch. If the icon has not appeared, refresh or restart
@@ -59,6 +61,22 @@ used only for that installation and is never saved or sent to GitHub. Keep power
 connected during installation; the app restarts when finished. Updates preserve
 your local identity, channels, and messages. This checks GitHub releases and may
 install a version newer than the app-store version.
+
+The update screen separates downloading, verification and installation. It shows
+received/total MiB and a percentage when the server provides a size, elapsed
+time, and the package manager's installation progress. An activity bar is used
+when a stage has no measurable percentage.
+These indicators are available after installing v0.1.19; older versions use
+their existing update screen for that first installation.
+
+The in-app updater uses private on-disk caches for package downloads and staging
+to reduce RAM use. Temporary package copies are removed when the operation ends.
+
+If an update is slow, its stage timings and outcomes are recorded locally in
+`~/.local/share/meshcore-zero/update.log` (under your selected data directory if
+overridden). The log rotates after 256 KiB and keeps one previous copy. It
+contains timing fields, not passwords or messages. For installer errors, inspect
+`sudo tail -n 80 /var/log/meshcore-zero-update.log` over SSH.
 
 ## Using MeshCore
 

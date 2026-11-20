@@ -34,9 +34,14 @@ class UI:
         self._chat_cache_key = None
         self._chat_cache = None
         from .update import Updater
-        self.updater = Updater()
+        from pathlib import Path
+        data_root=Path(store.db.execute('PRAGMA database_list').fetchone()[2]).parent
+        self.updater = Updater(log_path=data_root/'update.log',cache_dir=data_root/'update-cache')
         self.update_state = 'idle'
         self.update_message = ''
+        self.update_stage = ''
+        self.update_done = self.update_total = None
+        self.update_started = self.update_stage_started = 0
         self.password = ''
         self.restart_requested = False
         self.startup_release = None
@@ -101,6 +106,8 @@ class UI:
             self.chat['id'] if self.chat else None, self.draft if include_draft else None, self.scroll,
             self.toast if time.monotonic() < self.toast_until else '',
             self.update_state, self.update_message, len(self.password), self.battery,
+            self.update_stage,self.update_done,self.update_total,
+            int(time.monotonic()-self.update_started) if self.update_state=='busy' and self.update_started else None,
             self.launch_state, self.launch_error,
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
@@ -156,22 +163,39 @@ class UI:
             lines.extend(self.text.wrap(spans,300,11))
         return lines
 
+    def update_progress(self,stage,done=None,total=None):
+        labels={'check':'Checking GitHub…','manifest':'Fetching checksum…',
+            'connect':'Connecting to download…','download':'Downloading package…',
+            'verify_download':'Verifying download…','authenticate':'Authenticating…',
+            'stage_package':'Staging package…','verify_package':'Verifying package…',
+            'metadata':'Checking package details…','prepare_install':'Preparing installation…',
+            'dependencies':'Downloading dependencies…','installing':'Installing package…',
+            'finish':'Finishing installation…'}
+        if stage!=self.update_stage:self.update_stage_started=time.monotonic()
+        self.update_stage=stage
+        self.update_message=labels.get(stage,'Updating…')
+        self.update_done,self.update_total=done,total
+
     async def update_work(self, action):
         import asyncio
         self.update_state = 'busy'
+        self.update_started=time.monotonic()
+        self.update_stage='';self.update_done=self.update_total=None
+        loop=asyncio.get_running_loop()
+        def progress(*args):loop.call_soon_threadsafe(self.update_progress,*args)
         self.update_message = {'check':'Checking GitHub…','download':'Downloading and verifying…','install':'Installing. Keep power connected.'}[action]
         try:
             if action == 'check':
-                available = await asyncio.to_thread(self.updater.check)
+                available = await asyncio.to_thread(self.updater.check,progress=progress)
                 self.update_state = 'available' if available else 'current'
                 self.update_message = ('Available: '+self.updater.release[0]) if available else 'You have the latest version.'
             elif action == 'download':
-                await asyncio.to_thread(self.updater.download)
+                await asyncio.to_thread(self.updater.download,progress)
                 self.update_state = 'password'
                 self.update_message = 'Device sudo password (blank if none):'
             else:
                 password, self.password = self.password, ''
-                await self.updater.install(password)
+                await self.updater.install(password,progress)
                 password = ''
                 self.restart_requested = True
                 self.running = False
@@ -179,6 +203,7 @@ class UI:
             self.password = ''
             self.update_state = 'error'
             self.update_message = 'Update failed. Check network / password.'
+            self.update_stage='';self.update_done=self.update_total=None
 
     def start_update(self, action):
         import asyncio
@@ -524,6 +549,25 @@ class UI:
             if self.update_state == 'password':
                 d.rounded_rectangle((8,99,311,123),4,fill=SELECT)
                 text(14,103,'*'*min(35,len(self.password))+'|',ACCENT,12,width=290)
+            elif self.update_state == 'busy' and self.update_started:
+                now=time.monotonic()
+                elapsed=max(0,now-self.update_stage_started)
+                fraction=None
+                if self.update_total and self.update_done is not None:
+                    fraction=max(0,min(1,self.update_done/self.update_total))
+                if self.update_stage=='download' and self.update_done is not None:
+                    detail=f'{self.update_done/1048576:.1f}'
+                    detail+=(f' / {self.update_total/1048576:.1f} MiB' if self.update_total else ' MiB received')
+                    if fraction is not None:detail+=f' · {fraction:.0%}'
+                    text(10,98,detail,ACCENT,11,width=300)
+                elif fraction is not None:text(10,98,f'{fraction:.0%}',ACCENT,11)
+                d.rounded_rectangle((10,116,309,124),3,fill=PANEL)
+                if fraction is not None:
+                    if fraction>0:d.rounded_rectangle((10,116,10+max(2,int(299*fraction)),124),3,fill=ACCENT)
+                else:
+                    x=10+int(now*40)%230
+                    d.rounded_rectangle((x,116,x+69,124),3,fill=ACCENT)
+                text(10,134,f'Stage: {int(elapsed)}s · Total: {int(now-self.update_started)}s',MUTED,9,width=300)
             hint = ('Enter download   Esc back' if self.update_state=='available' else
                     'Enter install   Esc back' if self.update_state=='password' else
                     'Please wait…' if self.update_state=='busy' else 'Enter check again   Esc back')

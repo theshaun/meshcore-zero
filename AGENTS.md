@@ -8,3 +8,6 @@
   repository. Build/install and verify the packaged app through APPLaunch.
 - Verify physical LCD refresh, not only framebuffer readback. This driver
   requires shared mapped writes for reliable panel updates.
+- The test device's `/tmp` is RAM-backed. Put on-device build trees and package
+  download/staging files on persistent storage (for example `~/.cache` and the
+  installer's private `/var/cache/meshcore-zero`), rather than filling `/tmp`.

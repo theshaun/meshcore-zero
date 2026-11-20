@@ -5,6 +5,15 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.19 — 2026-11-20
+
+- Separate updater connection, download, checksum, authentication, package validation, dependency retrieval and installation stages.
+- Stream package downloads to disk with received/total MiB, percentage when size is known, a progress bar and live elapsed time.
+- Show APT's reported installation progress instead of a single static Installing message.
+- Record per-stage durations and outcomes in a bounded private local update.log; retain installer diagnostics and total installation time in the privileged installer log.
+- Preserve both checksum checks, package identity/version checks and downgrade protection.
+- Use private on-disk download and installer caches instead of keeping package copies in the Zero's RAM-backed /tmp.
+
 ## 0.1.18 — 2026-11-20
 
 - Ask whether to save a repeater password after entry, with No selected by default.

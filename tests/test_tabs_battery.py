@@ -28,30 +28,30 @@ class TabTests(unittest.TestCase):
     def test_tab_switches_pages_immediately_and_preserves_drafts(self):
         import asyncio
         async def scenario():
-            for expected in ('join','nodes','settings','inbox'):
+            for expected in ('join','nodes','map','settings','inbox'):
                 await self.ui.key('tab')
                 self.assertEqual(self.ui.screen,expected)
                 self.assertEqual(self.ui.menu,-1)
             self.ui.open_chat(self.store.chats()[0]);self.ui.draft='x draft'
             await self.ui.key('tab');self.assertEqual(self.ui.screen,'join')
             self.ui.draft='#draft'
-            for _ in range(4):await self.ui.key('tab')
+            for _ in range(5):await self.ui.key('tab')
             self.assertEqual(self.ui.draft,'#draft')
             self.ui.open_chat(self.store.chats()[0]);self.assertEqual(self.ui.draft,'x draft')
         asyncio.run(scenario())
 
     def test_current_section_highlight_in_nested_screens_and_centered_titles(self):
-        for screen,index in [('inbox',0),('chat',0),('join',1),('nodes',2),('settings',3),('name',3),('regions',3),('update',3)]:
+        for screen,index in [('inbox',0),('chat',0),('join',1),('nodes',2),('map',3),('map_details',3),('settings',4),('name',4),('regions',4),('update',4),('gps_sharing',4)]:
             self.ui.screen=screen
             self.assertEqual(self.ui.active_tab(),index)
         self.ui.screen='inbox'
         with patch.object(self.ui.text,'draw',wraps=self.ui.text.draw) as draw:
             frame=self.ui.render()
-        labels=[c for c in draw.call_args_list if c.args[2] in ('Chats','Join','Nodes','Settings')]
-        self.assertEqual([c.args[2] for c in labels],['Chats','Join','Nodes','Settings'])
+        labels=[c for c in draw.call_args_list if c.args[2] in ('Chats','Join','Nodes','Map','Settings')]
+        self.assertEqual([c.args[2] for c in labels],['Chats','Join','Nodes','Map','Settings'])
         for index,call in enumerate(labels):
-            width=self.ui.text.width(call.args[2],10,index==0)
-            self.assertAlmostEqual(call.args[1][0]+width/2,index*72+36)
+            width=self.ui.text.width(call.args[2],9,index==0)
+            self.assertAlmostEqual(call.args[1][0]+width/2,index*58+29)
         self.assertEqual(frame.getpixel((4,10)),tuple(bytes.fromhex(SELECT[1:])))
 
     def test_battery_fill_and_chat_cache_track_live_charge_without_sysfs_reads(self):

@@ -12,6 +12,9 @@ TEXT = '#e8f3f9'
 ACCENT = '#69dfca'
 SELECT = '#254c65'
 GREEN = '#4de27a'
+TAB_SCREENS = ('inbox','join','nodes','map','settings')
+TAB_TITLES = ('Chats','Join','Nodes','Map','Settings')
+
 UNCONFIRMED = '#52616d'
 
 
@@ -54,6 +57,10 @@ class UI:
         self.identity_ui = IdentityUI(self)
         from .channel_ui import ChannelUI
         self.channel_ui = ChannelUI(self)
+        from .gps import GPS
+        self.gps = GPS(self)
+        from .map_ui import MapUI
+        self.map_ui = MapUI(self)
         self.pending_restore = None
         from .backup_ui import BackupUI
         self.backup_ui = BackupUI(self)
@@ -85,7 +92,7 @@ class UI:
             self.drafts[self.chat['id']] = self.draft
         if self.screen == 'join':
             self.join_draft = self.draft
-        self.screen = ('inbox','join','nodes','settings')[index]
+        self.screen = TAB_SCREENS[index]
         self.menu, self.selected = -1, 0
         self.draft = self.join_draft if index == 1 else ''
         self.join_public = False
@@ -127,7 +134,7 @@ class UI:
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
-            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),
+            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -250,6 +257,9 @@ class UI:
                 self.screen = 'update'
                 self.start_update('download')
             return
+        if self.screen in ('map','map_position','map_details','gps_sharing'):
+            await self.map_ui.key(key)
+            return
         if self.screen=='backup':
             await self.backup_ui.key(key)
             return
@@ -332,7 +342,7 @@ class UI:
                 self.switch_tab(0)
             return
         if key == 'tab':
-            self.switch_tab((self.active_tab()+1)%4)
+            self.switch_tab((self.active_tab()+1)%len(TAB_SCREENS))
             return
         if key == 'escape':
             if self.screen == 'chat':
@@ -343,7 +353,7 @@ class UI:
                 self.running = False
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 8
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 9
             if key=='backspace' and self.screen=='inbox' and count:
                 chat=self.store.chats()[min(self.selected,count-1)]
                 if chat['kind']=='channel':self.channel_ui.open(chat)
@@ -388,6 +398,8 @@ class UI:
                         self.identity_ui.open()
                     elif self.selected == 7:
                         self.backup_ui.open()
+                    elif self.selected == 8:
+                        self.map_ui.open_sharing()
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
@@ -482,6 +494,7 @@ class UI:
             return self.draw_launch_notice()
         if self.startup_release:
             return self.draw_startup_update()
+        if self.screen in ('map','map_position','map_details','gps_sharing'):return self.map_ui.draw()
         if self.screen=='backup':return self.backup_ui.draw()
         if self.screen=='channel_options':return self.channel_ui.draw()
         if self.screen=='identity':return self.identity_ui.draw()
@@ -596,7 +609,7 @@ class UI:
             hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore']
+            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore', 'GPS broadcasting: '+self.store.get('gps_broadcast','off').title()]
             start=max(0,self.selected-4)
             for i in range(start,min(len(labels),start+5)):
                 label=labels[i]
@@ -708,21 +721,22 @@ class UI:
         if self.screen in ('inbox','chat','channel_options'): return 0
         if self.screen == 'join': return 1
         if self.screen in ('nodes','repeater'): return 2
-        return 3
+        if self.screen in ('map','map_position','map_details'): return 3
+        return 4
 
     def draw_tabs(self,img):
         d=ImageDraw.Draw(img)
         d.rectangle((0,0,319,20),fill=PANEL)
         active=self.active_tab()
-        for i,title in enumerate(('Chats','Join','Nodes','Settings')):
-            left=i*72
+        for i,title in enumerate(TAB_TITLES):
+            left=i*58
             selected=i==active
-            bounds=(left+3,2,left+68,18)
+            bounds=(left+3,2,left+55,18)
             if selected: d.rounded_rectangle(bounds,3,fill=SELECT)
             if i==self.menu: d.rounded_rectangle(bounds,3,outline=ACCENT)
-            width=self.text.width(title,10,selected)
-            self.text.draw(img,(left+(72-width)/2,3),title,
-                ACCENT if selected else MUTED,10,selected,width=66)
+            width=self.text.width(title,9,selected)
+            self.text.draw(img,(left+(58-width)/2,3),title,
+                ACCENT if selected else MUTED,9,selected,width=52)
         # Fuel-gauge capacity only: never infer a charge level from voltage.
         d.rounded_rectangle((296,5,315,15),2,outline=MUTED)
         d.rectangle((316,8,317,12),fill=MUTED)

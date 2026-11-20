@@ -80,7 +80,7 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 
 ## Using MeshCore
 
-- **Tab** cycles through Chats, Join, Nodes, and Settings and immediately displays each page. **Enter** acts on the visible page.
+- **Tab** cycles through Chats, Join, Nodes, Map, and Settings and immediately displays each page. **Enter** acts on the visible page.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
 - Type in a conversation and press **Enter** to send.
@@ -92,7 +92,7 @@ contains timing fields, not passwords or messages. For installer errors, inspect
   a direct message. Repeaters and room servers remain visible in the list.
 - Select a **Repeater** and press **Enter**, then confirm **Request Status** and enter its password. The password is masked. After entry, choose whether to save it (**No** is selected by default). A successful status request saves it encrypted on this device if you choose **Yes**; future requests reuse it for that repeater. Press **Backspace** on the repeater confirmation or status screen to forget it. Status shows battery voltage and an approximate single-cell Li-ion percentage, uptime, noise floor, last SNR and the repeater's UTC clock. Unsupported clock queries show **Unavailable**; other battery types may not have a meaningful percentage.
 - After startup checks and any update decision, MeshCore sends one flood advert to introduce your node. You can also use **Settings → Announce this node**.
-- **Settings** controls region, coding rate, node name, announcements, message sound, identity import/export, encrypted backup/restore, and app updates.
+- **Settings** controls region, coding rate, node name, announcements, message sound, identity import/export, encrypted backup/restore, GPS broadcasting, and app updates.
 - The display follows the system **Settings → Screen → DarkTime** timeout, including **Never**. The first keypress wakes the screen without activating anything. Messages continue arriving while the screen is dark.
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
@@ -199,6 +199,44 @@ Clear the field to inherit the regional default. The effective scope appears in
 the chat header. An override affects future outgoing channel floods, including
 Public; it does not filter incoming messages or change adverts/other channels.
 See the [ScotMesh setup guide](https://wiki.scotmesh.uk/en/MeshCore/getting-started).
+
+## Map and GPS
+
+**Map** is a simple offline, north-up radar inspired by MeshZero's clean small-screen
+layout. It uses your CAP's GPS position and the coordinates other nodes advertise.
+It does not download street maps or estimate distance from signal strength.
+
+- **Up/Down** or **+/−** zooms; **0** fits all positioned nodes.
+- **Left/Right** selects a node; **Enter** shows its distance, bearing, position
+  age, last advert reception and available RSSI/SNR. **Escape** returns to Map.
+- **M** sets a manual fallback as `latitude, longitude` in decimal degrees.
+  Clear that field to remove it. A fresh GPS fix takes priority; a lost fix is
+  labelled **Last GPS** and used for up to five minutes before falling back.
+- Chat nodes use blue dots, repeaters orange triangles, and room servers purple
+  diamonds. The centre marker is you. Older/unknown-age positions are hollow grey;
+  out-of-range nodes sit at the rim. Labels are limited to reduce overlap.
+- Nodes without valid advertised coordinates remain in **Nodes**. Advert RX
+  signal measurements describe the last radio leg, which may be a relay, not a
+  direct link to the mapped node. Positions older than 24 hours are marked older.
+
+Both supported CAPs provide GPS NMEA over the Zero's `/dev/serial0` UART (fallback
+`/dev/ttyS0`) at 115200 baud. GPS is read while viewing Map or while broadcasting
+is enabled. No receiver configuration commands are sent. The app restores the
+port settings when it closes and leaves active GPS services/serial consoles
+alone. GPS reception may require a clear view of the sky. If the port is busy or
+no fix is available, use a manual fallback. Live GPS coordinates stay in memory;
+only a position you enter manually is saved in the app database.
+
+**Settings → GPS broadcasting** is **Off** by default. Enabling it asks for
+confirmation before sharing your precise GPS position. When enabled, fresh fixes
+are included in startup/manual adverts, and a location advert is sent after a
+fresh fix becomes available and at most every 15 minutes thereafter, subject to
+radio cooldowns. A fix must be no more than 15 seconds old. No-fix/stale GPS and
+manual fallback positions are never broadcast. Turning sharing off clears the
+advert location and cancels queued own-location adverts before transmission.
+Map use alone does not enable sharing; GPS broadcasting continues with the
+screen asleep until the app exits. Restoring a full backup also restores its
+saved manual position and GPS broadcasting preference.
 
 ## Identity import and export
 

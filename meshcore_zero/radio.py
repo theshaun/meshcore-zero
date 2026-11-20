@@ -47,6 +47,8 @@ class Backend:
         self._outgoing_mid = None
         self._outgoing_started = 0
         self._early_echoes = OrderedDict()
+        self._advert_rx = OrderedDict()
+        self.gps = None
 
     async def start(self):
         from openhop_core import CompanionRadio, LocalIdentity
@@ -59,13 +61,15 @@ class Backend:
             self.region = region
             cfg = radio_config(self.store, region)
             self.config = cfg
-            class CapRadio(RegionalRadioMixin, SX1262Radio):
+            from .gps import LocationPrivacyMixin
+            class CapRadio(LocationPrivacyMixin, RegionalRadioMixin, SX1262Radio):
                 pass
             self.radio = CapRadio(region=region,bus_id=0, cs_id=1, cs_pin=-1,
                 gpio_chip=0, use_gpiod_backend=True, reset_pin=26,
                 busy_pin=22, irq_pin=23, txen_pin=-1,
                 preamble_length=16, sync_word=0x12,
                 use_dio2_rf=True, use_dio3_tcxo=True, dio3_tcxo_voltage=3.0, **cfg)
+            self.radio.location_allowed=self.location_packet_allowed
             if not self.radio.begin():
                 raise RuntimeError('SX1262 initialization failed; check CAP seating')
             self.power.confirm_radio(self.radio.lora)
@@ -144,6 +148,12 @@ class Backend:
         packet=Packet()
         try:
             packet.read_from(data)
+            if packet.get_payload_type()==4:
+                key=packet.calculate_packet_hash().hex()
+                self._advert_rx[key]=(time.time(),rssi,snr)
+                self._advert_rx.move_to_end(key)
+                while len(self._advert_rx)>128:self._advert_rx.popitem(last=False)
+                return
             if packet.get_payload_type()!=5 or packet.get_route_type() not in (0,1):
                 return
             hops=packet.get_path_hash_count()
@@ -164,10 +174,33 @@ class Backend:
         if self.engine:
             with self.store.db:
                 for row in self.engine.contacts.to_dicts():
+                    previous=self.store.db.execute('SELECT data FROM nodes WHERE key=?',(row['public_key'],)).fetchone()
+                    if previous:
+                        old=json.loads(previous[0])
+                        for name in ('map_heard_at','map_position_at','map_rssi','map_snr'):
+                            if name in old:row[name]=old[name]
                     self.store.db.execute('INSERT OR REPLACE INTO nodes VALUES(?,?)', (row['public_key'], json.dumps(row)))
 
     async def advert(self, data):
         self.persist_contacts()
+        public=getattr(data,'public_key',None)
+        if not isinstance(public,bytes):return
+        record=self.store.db.execute('SELECT data FROM nodes WHERE key=?',(public.hex(),)).fetchone()
+        if not record:return
+        node=json.loads(record[0]);node['map_heard_at']=time.time()
+        node.pop('map_rssi',None);node.pop('map_snr',None)
+        from .map_ui import has_position
+        if has_position(node) is not None:node['map_position_at']=time.time()
+        try:
+            from openhop_core.protocol import Packet
+            packet=Packet();packet.read_from(data.last_advert_packet)
+            meta=self._advert_rx.pop(packet.calculate_packet_hash().hex(),None)
+            if meta:
+                import math
+                for name,value in zip(('map_rssi','map_snr'),meta[1:]):
+                    if isinstance(value,(int,float)) and math.isfinite(value) and (-200<=value<0 if name=='map_rssi' else -50<=value<=50):node[name]=value
+        except (ValueError,TypeError,AttributeError,IndexError):pass
+        with self.store.db:self.store.db.execute('UPDATE nodes SET data=? WHERE key=?',(json.dumps(node),public.hex()))
 
     async def channel_message(self, event):
         chat = next((k for k, v in self.channels.items() if v == event.channel_idx), None)
@@ -237,15 +270,36 @@ class Backend:
             finally:
                 self._outgoing_mid=None
 
-    async def announce(self):
+    def location_packet_allowed(self,raw):
+        from openhop_core.protocol import Packet
+        try:
+            packet=Packet()
+            if not packet.read_from(raw):return False
+            payload=packet.get_payload()
+            if packet.get_payload_type()!=4 or len(payload)<109 or not payload[100]&0x10:return True
+            if not self.engine:return False
+            if payload[:32]!=self.engine.get_public_key():return True
+            return bool(self.gps and self.gps.fresh() and self.store.get('gps_broadcast','off')=='on')
+        except (ValueError,TypeError,IndexError):return False
+
+    def update_location_policy(self):
+        prefs=getattr(self.engine,'prefs',None)
+        if prefs is None:return
+        fix=self.gps.fresh() if self.gps and self.store.get('gps_broadcast','off')=='on' else None
+        prefs.latitude,prefs.longitude=(fix.latitude,fix.longitude) if fix else (0.0,0.0)
+        prefs.advert_loc_policy=1 if fix else 0
+
+    async def announce(self,notify=True):
         if not self.engine:
             raise ValueError('Radio offline')
         async with self.send_lock:
             if time.monotonic() < self.next_tx:
                 raise ValueError('Airtime cooldown · try again shortly')
+            self.update_location_policy()
             ok = await self.engine.advertise(flood=True)
+            if ok and self.gps and getattr(self.engine.prefs,'advert_loc_policy',0)==1:self.gps.last_broadcast=time.monotonic()
             self.next_tx = time.monotonic() + (60 if self.region in EUROPE else 6)
-            self.notify('Announcement sent' if ok else 'Announcement failed')
+            if notify:self.notify('Announcement sent' if ok else 'Announcement failed')
             return ok
 
     async def close(self):

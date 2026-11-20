@@ -38,6 +38,7 @@ async def run(args):
     input_ready=asyncio.Event()
     backend=Backend(store,ui.notice,sound.received)
     ui.backend=backend
+    backend.gps=ui.gps
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGTERM,signal.SIGINT):
         loop.add_signal_handler(sig,lambda:setattr(ui,'running',False))
@@ -65,6 +66,9 @@ async def run(args):
         battery_task=asyncio.create_task(monitor(ui))
         ui.tasks.add(battery_task)
         battery_task.add_done_callback(ui.tasks.discard)
+        gps_task=asyncio.create_task(ui.gps.run(advert_task))
+        ui.tasks.add(gps_task)
+        gps_task.add_done_callback(ui.tasks.discard)
         previous=None
         started=loop.time()
         while ui.running and (not args.duration or loop.time()-started<args.duration):

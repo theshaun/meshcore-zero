@@ -5,6 +5,16 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.23 — 2026-11-20
+
+- Add a compact Map tab with north-up offline radar, two distance rings, coloured node markers, zoom/auto-fit, selection and node details.
+- Read CAP GPS at 115200 baud without receiver commands; validate NMEA checksums/fixes, restore UART settings at exit, and avoid active GPS daemons or serial consoles.
+- Use fresh GPS locally, label a recent lost fix, and support a manually saved fallback position; never infer distance from signal strength or plot missing coordinates.
+- Mark older node positions, retain verified-advert receive times and last-leg RSSI/SNR, and keep all location-free nodes in Nodes.
+- Add opt-in GPS broadcasting in Settings, off by default with Cancel-first confirmation. Include fresh fixes in adverts, send at most every 15 minutes automatically, and respect regional airtime cooldowns.
+- Never broadcast the manual fallback; recheck sharing/fix availability immediately before actual location-advert transmission and cancel queued adverts when disabled.
+- Keep five centred tabs and the battery icon within the existing header. Document map controls and location-sharing privacy.
+
 ## 0.1.22 — 2026-11-20
 
 - Open channel options with Backspace in Chats: mute/unmute notifications, set an optional scope override, clear history or leave, with Cancel-first destructive confirmations.

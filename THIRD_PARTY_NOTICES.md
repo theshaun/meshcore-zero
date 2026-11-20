@@ -29,3 +29,8 @@ in iMessage; it does not bundle Apple's proprietary emoji artwork.
 `emoji-test.txt` (2026-04-30) at
 https://unicode.org/Public/emoji/latest/emoji-test.txt.
 Redistribution terms are retained in `assets/fonts/UNICODE_LICENSE.txt`.
+
+The radar layout takes visual inspiration from MeshZero's map screenshot:
+https://github.com/s0liton/MeshZero/blob/main/screenshots/5-map.png
+The Python map/GPS implementation is independent; no MeshZero source or assets
+are included. CAP GPS interface facts follow M5Stack's hardware documentation.

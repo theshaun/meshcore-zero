@@ -51,6 +51,8 @@ the launcher. Application updates preserve your identity, channels, and history.
 
 ## Update
 
+At startup, MeshCore checks GitHub for a newer stable release when the device has internet access. If one is available, **Update** is selected by default; press **Enter** to continue, or choose **Later** / press **Esc**. Offline checks are skipped quietly and do not block radio startup.
+
 In **Settings → Update app**, check GitHub for a newer release, press Enter to
 download it, then enter your device’s sudo password to install. The password is
 used only for that installation and is never saved or sent to GitHub. Keep power

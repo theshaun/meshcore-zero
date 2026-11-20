@@ -5,6 +5,12 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.16 — 2026-11-19
+
+- Check GitHub's latest stable release once at startup without blocking radio initialization or keyboard input.
+- Offer Update / Later when a newer complete release exists, with Update selected by default; reuse the verified download and installation flow.
+- Quietly continue offline or if the release check fails; cancel the checker on exit and preserve drafts when dismissing the prompt.
+
 ## 0.1.15 — 2026-11-19
 
 - Open the focused top tab with X or Fn+X (Down), as well as Enter, without changing message typing.

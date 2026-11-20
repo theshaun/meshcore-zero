@@ -53,6 +53,10 @@ async def run(args):
         fb.write(ui.render())  # Show preflight before touching the radio.
         from .radio_conflict import start_radio
         startup=asyncio.create_task(start_radio(ui,backend))
+        from .startup_update import check_at_startup
+        update_task=asyncio.create_task(check_at_startup(ui))
+        ui.tasks.add(update_task)
+        update_task.add_done_callback(ui.tasks.discard)
         from .battery import monitor
         battery_task=asyncio.create_task(monitor(ui))
         ui.tasks.add(battery_task)

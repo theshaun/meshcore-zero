@@ -39,6 +39,8 @@ class UI:
         self.update_message = ''
         self.password = ''
         self.restart_requested = False
+        self.startup_release = None
+        self.startup_update_choice = 0
         self.battery = None
         import asyncio
         self.launch_state = ''
@@ -55,6 +57,7 @@ class UI:
             self.toast if time.monotonic() < self.toast_until else '',
             self.update_state, self.update_message, len(self.password), self.battery,
             self.launch_state, self.launch_error,
+            tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -145,6 +148,19 @@ class UI:
             if key=='enter':
                 if self.launch_state=='conflict': self.launch_ack.set()
                 elif self.launch_state=='error': self.running=False
+            return
+        if self.startup_release:
+            if key in ('tab','left','right','up','down'):
+                self.startup_update_choice = 1-self.startup_update_choice
+            elif key == 'escape' or key == 'enter' and self.startup_update_choice == 1:
+                self.startup_release = None
+            elif key == 'enter':
+                self.updater.release = tuple(self.startup_release)
+                self.startup_release = None
+                if self.screen == 'chat':
+                    self.drafts[self.chat['id']] = self.draft
+                self.screen = 'update'
+                self.start_update('download')
             return
         if self.screen == 'update':
             if self.update_state == 'busy': return
@@ -287,9 +303,30 @@ class UI:
         self.drafts[chat['id']] = ''
         self.scroll = 0
 
+    def draw_startup_update(self):
+        from . import __version__
+        image=Image.new('RGB',(320,170),BG)
+        draw=ImageDraw.Draw(image)
+        def text(x,y,value,color=TEXT,size=12,bold=False):
+            self.text.draw(image,(x,y),value,color,size,bold,300)
+        text(12,12,'Update available',size=16,bold=True)
+        text(12,43,'Installed: '+__version__,MUTED,11)
+        text(12,63,'Latest: '+self.startup_release[0],ACCENT,12,True)
+        text(12,87,'Update MeshCore now?',size=12)
+        for i,(x,label) in enumerate(((12,'Update'),(166,'Later'))):
+            selected=i==self.startup_update_choice
+            draw.rounded_rectangle((x,113,x+141,141),5,fill=SELECT if selected else PANEL,
+                outline=ACCENT if selected else PANEL)
+            width=self.text.width(label,12,selected)
+            text(x+(142-width)/2,119,label,ACCENT if selected else TEXT,12,selected)
+        text(12,153,'Tab / arrows choose   Enter select   Esc later',MUTED,9)
+        return image
+
     def render(self):
         if self.launch_state:
             return self.draw_launch_notice()
+        if self.startup_release:
+            return self.draw_startup_update()
         if self.screen == 'chat' and self._chat_cache_key == self.render_key(False):
             img=self._chat_cache.copy()
             self.draw_composer(img)

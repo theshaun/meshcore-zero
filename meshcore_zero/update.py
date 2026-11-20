@@ -18,9 +18,9 @@ def version(value):
         raise ValueError('Unsupported release version')
     return tuple(map(int, value.lstrip('v').split('.')))
 
-def fetch(url, limit):
+def fetch(url, limit, timeout=20):
     url += ('&' if '?' in url else '?')+'meshcore='+str(time.time_ns())
-    with urlopen(Request(url, headers={'User-Agent': 'MeshCore-Zero-updater', 'Accept': 'application/vnd.github+json', 'Cache-Control': 'no-cache'}), timeout=20) as response:
+    with urlopen(Request(url, headers={'User-Agent': 'MeshCore-Zero-updater', 'Accept': 'application/vnd.github+json', 'Cache-Control': 'no-cache'}), timeout=timeout) as response:
         if not response.url.startswith('https://'):
             raise ValueError('Insecure download refused')
         data = response.read(limit+1)
@@ -35,8 +35,8 @@ class Updater:
         self.path = None
         self.digest = None
 
-    def check(self):
-        release = json.loads(fetch(API, 1024*1024))
+    def check(self, timeout=20):
+        release = json.loads(fetch(API, 1024*1024, timeout=timeout))
         tag = release['tag_name']
         if release.get('draft') or release.get('prerelease'):
             raise ValueError('No published update available')
@@ -82,3 +82,13 @@ class Updater:
     def cleanup(self):
         if self.directory: shutil.rmtree(self.directory,ignore_errors=True)
         self.directory = self.path = None
+
+
+if __name__ == '__main__':
+    import sys
+    if sys.argv[1:] == ['--startup-check']:
+        updater = Updater()
+        try:
+            print(json.dumps(updater.release if updater.check(timeout=4) else None))
+        except Exception:
+            print('null')

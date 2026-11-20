@@ -56,7 +56,7 @@ Architecture: arm64
 Maintainer: unagisan69 <unagisan69@users.noreply.github.com>
 Section: APPLaunch
 Priority: optional
-Depends: python3 (>= 3.13), python3 (<< 3.14), python3-pil, python3-numpy, python3-spidev (>= 3.6), fonts-dejavu-core
+Depends: python3 (>= 3.13), python3 (<< 3.14), python3-pil, python3-numpy, python3-spidev (>= 3.6), fonts-dejavu-core, pulseaudio-utils
 Homepage: https://github.com/unagisan69/meshcore-zero
 Description: Standalone MeshCore client for Cardputer Zero and LoRa CAP
  Combined channels and direct messages with local encrypted radio transport.

@@ -31,8 +31,12 @@ async def run(args):
     from .radio import Backend
     fb=keyboard=None
     startup=None
+    from .screen_idle import ScreenIdle
+    from .sound import MessageSound
+    screen_idle=ScreenIdle()
+    sound=MessageSound(store)
     input_ready=asyncio.Event()
-    backend=Backend(store,ui.notice)
+    backend=Backend(store,ui.notice,sound.received)
     ui.backend=backend
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGTERM,signal.SIGINT):
@@ -41,6 +45,10 @@ async def run(args):
         fb=Framebuffer()
         keyboard=Keyboard()
         loop.add_reader(keyboard.fd,input_ready.set)
+        await asyncio.to_thread(screen_idle.tick)
+        screen_task=asyncio.create_task(screen_idle.run())
+        ui.tasks.add(screen_task)
+        screen_task.add_done_callback(ui.tasks.discard)
         ui.launch_state='checking'
         fb.write(ui.render())  # Show preflight before touching the radio.
         from .radio_conflict import start_radio
@@ -53,7 +61,11 @@ async def run(args):
         started=loop.time()
         while ui.running and (not args.duration or loop.time()-started<args.duration):
             input_ready.clear()
-            for key in keyboard.read():
+            keys=keyboard.read()
+            if keys and await screen_idle.activity():
+                keys=[]
+                previous=None  # Force the current image through the LCD on wake.
+            for key in keys:
                 await ui.key(key)
             key=ui.render_key()
             if key!=previous:
@@ -69,6 +81,8 @@ async def run(args):
         for task in list(ui.tasks): task.cancel()
         await asyncio.gather(*ui.tasks,return_exceptions=True)
         await backend.close()
+        await sound.close()
+        await screen_idle.close()
         if keyboard:
             loop.remove_reader(keyboard.fd)
             keyboard.close()

@@ -25,6 +25,25 @@ class TabTests(unittest.TestCase):
         self.store=Store(self.tmp.name);self.addCleanup(self.store.db.close)
         self.ui=UI(self.store)
 
+    def test_x_and_fn_x_open_focused_tab_without_changing_draft_typing(self):
+        import asyncio
+        from meshcore_zero.hardware import Keyboard
+        async def scenario():
+            keyboard=Keyboard.__new__(Keyboard);keyboard.shift=set()
+            for code in (45,108):
+                key=keyboard.translate(1,code,1)
+                for index,screen in enumerate(('inbox','join','nodes','settings')):
+                    self.ui.screen='inbox';self.ui.menu=index
+                    await self.ui.key(key)
+                    self.assertEqual(self.ui.screen,screen)
+                    self.assertEqual(self.ui.menu,-1)
+                    self.assertEqual(self.ui.draft,'#' if screen=='join' else '')
+            self.ui.open_chat(self.store.chats()[0])
+            self.ui.draft=''
+            await self.ui.key('x')
+            self.assertEqual(self.ui.draft,'x')
+        asyncio.run(scenario())
+
     def test_current_section_highlight_in_nested_screens_and_centered_titles(self):
         for screen,index in [('inbox',0),('chat',0),('join',1),('nodes',2),('settings',3),('name',3),('regions',3),('update',3)]:
             self.ui.screen=screen

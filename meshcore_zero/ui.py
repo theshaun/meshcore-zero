@@ -188,12 +188,12 @@ class UI:
         if self.menu >= 0:
             if key in ('left', 'right'):
                 self.menu = (self.menu + (1 if key == 'right' else -1)) % 4
-            if key == 'enter':
+            if key in ('enter','x','X','down'):
                 self.screen = ['inbox', 'join', 'nodes', 'settings'][self.menu]
                 self.menu, self.selected, self.draft = -1, 0, '#' if self.screen == 'join' else ''
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 5
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 6
             if key in ('up', 'down'):
                 self.selected = max(0, min(max(0, count - 1), self.selected + (1 if key == 'down' else -1)))
             elif key == 'enter':
@@ -220,6 +220,8 @@ class UI:
                     elif self.selected == 4:
                         self.screen = 'update'
                         self.start_update('check')
+                    elif self.selected == 5:
+                        self.store.set('message_sound', 'off' if self.store.get('message_sound','on') == 'on' else 'on')
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
@@ -354,8 +356,11 @@ class UI:
             hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            for i,label in enumerate(['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app']):
-                y=23+i*22
+            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title()]
+            start=max(0,self.selected-4)
+            for i in range(start,min(len(labels),start+5)):
+                label=labels[i]
+                y=23+(i-start)*22
                 d.rounded_rectangle((5,y,314,y+20),4, fill=SELECT if i==self.selected else PANEL)
                 text(12,y+3,label,size=11,width=290)
             status = (self.backend.error or self.backend.state) if self.backend else 'Preview · no radio'

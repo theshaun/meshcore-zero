@@ -5,6 +5,14 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.15 — 2026-11-19
+
+- Open the focused top tab with X or Fn+X (Down), as well as Enter, without changing message typing.
+- Honor APPLaunch Settings → Screen → DarkTime, including Never, while keeping the radio listening.
+- Wake the display on the first keypress without activating a control or sending a message; restore the backlight on normal exit.
+- Play a short chime for newly received channel messages and DMs, respecting system volume/mute. Add Settings → Message sound to turn it off.
+- Suppress duplicate-packet chimes and collapse rapid notification bursts; stop playback when the app closes.
+
 ## 0.1.14 — 2026-11-19
 
 - Add the Slovakia community preset: 869.618 MHz, BW62.5, SF7, CR4/5 and 2-byte path hashes.

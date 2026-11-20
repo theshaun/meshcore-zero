@@ -60,7 +60,7 @@ install a version newer than the app-store version.
 
 ## Using MeshCore
 
-- **Tab** cycles through Chats, Join, Nodes, and Settings; **Enter** opens.
+- **Tab** cycles through Chats, Join, Nodes, and Settings; **Enter**, **X**, or **Fn+X** opens the focused tab.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
 - Type in a conversation and press **Enter** to send.
@@ -69,7 +69,9 @@ install a version newer than the app-store version.
   entering another leading `#` is harmless.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Infrastructure nodes remain visible in the list.
-- **Settings** controls region, coding rate, node name, announcements, and app updates.
+- **Settings** controls region, coding rate, node name, announcements, message sound, and app updates.
+- The display follows the system **Settings → Screen → DarkTime** timeout, including **Never**. The first keypress wakes the screen without activating anything. Messages continue arriving while the screen is dark.
+- New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
 The inbox combines channels and direct messages, with message previews and
 unread counts. Names and messages support offline color Unicode emoji.

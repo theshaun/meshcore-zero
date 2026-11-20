@@ -31,8 +31,9 @@ def configure_mesh_sync(chip):
 
 
 class Backend:
-    def __init__(self, store, notify=lambda text: None):
+    def __init__(self, store, notify=lambda text: None, message_received=lambda: None):
         self.store, self.notify = store, notify
+        self.message_received = message_received
         self.engine = self.radio = None
         self.power = CapPower()
         self.state = 'Starting radio'
@@ -159,9 +160,11 @@ class Backend:
         chat = next((k for k, v in self.channels.items() if v == event.channel_idx), None)
         if chat:
             sender, separator, body = event.text.partition(': ')
-            self.store.add(chat, sender if separator else event.sender_name, body if separator else event.text, event.timestamp,
+            mid = self.store.add(chat, sender if separator else event.sender_name, body if separator else event.text, event.timestamp,
                 token=event.packet_hash, unread=True)
-            self.notify('New message · ' + event.channel_name)
+            if mid is not None:
+                self.notify('New message · ' + event.channel_name)
+                self.message_received()
         self.engine.sync_next_message()  # history has durably accepted the event
 
     async def direct_message(self, event):
@@ -169,8 +172,10 @@ class Backend:
         contact = self.engine.get_contact_by_key(event.sender_key)
         name = contact.name if contact else key[:8]
         self.store.dm(key, name)
-        self.store.add(key, name, event.text, event.timestamp, token=event.packet_hash, unread=True)
-        self.notify('New message · ' + name)
+        mid = self.store.add(key, name, event.text, event.timestamp, token=event.packet_hash, unread=True)
+        if mid is not None:
+            self.notify('New message · ' + name)
+            self.message_received()
         self.engine.sync_next_message()
 
     async def send(self, chat, text):

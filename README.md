@@ -101,60 +101,55 @@ unread counts. Names and messages support offline color Unicode emoji.
 
 ## Troubleshooting: MeshCore freezes or cannot use the LoRa CAP
 
-If **MeshZero** is installed, its background radio can keep the LoRa CAP busy
-after its window closes. This can interfere with MeshCore and other apps that
-need the same hardware. You do **not** have to uninstall MeshZero to use MeshCore;
-choose one of these options:
+Recent **MeshZero** versions have **Run in background disabled by default**.
+They stop the radio about **10 seconds after the app closes**, allowing other
+apps to use the LoRa CAP and GPS. Background operation is now opt-in; having
+MeshZero installed does not by itself mean it is causing a conflict. See
+[MeshZero's current background-mode documentation](https://github.com/s0liton/MeshZero#running-in-the-background).
 
-1. **Disable background operation in MeshZero:** open MeshZero, go to **Setup**,
-   scroll to **Run in background**, and switch it **Off**. Close MeshZero and
-   allow time for its radio to be released before opening MeshCore.
+To switch apps, close MeshZero, wait about 10 seconds for it to release the
+hardware, then open MeshCore. If you previously enabled **Setup → Run in
+background**, switch it **Off** first. Older installations may retain their
+existing preference, so check that setting after updating.
 
-2. **Stop the service through SSH or the Cardputer CLI:** run:
-
-   ```sh
-   sudo systemctl stop meshzero.service
-   ```
-
-   This stops it now without uninstalling MeshZero. To also prevent it from
-   starting automatically at the next boot, use:
-
-   ```sh
-   sudo systemctl disable --now meshzero.service
-   ```
-
-   To restore automatic startup later:
-
-   ```sh
-   sudo systemctl enable --now meshzero.service
-   ```
-
-   Exit MeshCore before restarting MeshZero's radio service.
-
-3. **Uninstall MeshZero if you no longer want it:** remove it through the
-   Cardputer app store, or run:
-
-   ```sh
-   sudo apt remove meshzero
-   ```
-
-   Back up any MeshZero identity/configuration you want to retain before
-   uninstalling. This command removes MeshZero, not MeshCore.
-
-**Current warning limitation (v0.1.13–v0.1.14):** MeshCore checks whether
+**MeshCore's current detection limitation:** MeshCore checks whether
 `meshzero.service` is active, rather than whether its radio is actually in use.
-The service can remain active after background operation is turned off, so
-MeshCore's warning may persist even after MeshZero releases the CAP. If that
-happens, use the service-stop command or uninstall option above.
+The service can remain active even after MeshZero releases the CAP, so a warning
+can still appear with background operation off. This warning does not prove the
+newer MeshZero is still holding the radio. If it persists after waiting, stop the
+service temporarily through SSH or the Cardputer CLI:
 
-From v0.1.13, the warning keeps MeshCore's radio unopened. After stopping the
-service, press **Okay** to check again, or **Esc** to exit. MeshCore does not stop
-other services automatically. Do not start another radio app while MeshCore is
-using the CAP.
+```sh
+sudo systemctl stop meshzero.service
+```
+
+Then press **Okay** in MeshCore to check again, or **Esc** to exit. MeshCore does
+not stop other services automatically. Exit MeshCore before opening MeshZero or
+another radio app. You do **not** need to uninstall MeshZero for normal use.
+
+For an older setup where you deliberately want to prevent service startup at
+boot, this is optional:
+
+```sh
+sudo systemctl disable --now meshzero.service
+```
+
+This changes MeshZero's service startup, not just its background preference.
+To restore it later, first exit MeshCore, then run:
+
+```sh
+sudo systemctl enable --now meshzero.service
+```
+
+Uninstalling is only necessary if you no longer want MeshZero installed. Back up
+its identity/configuration first, then remove it through the app store or with
+`sudo apt remove meshzero`. Removing MeshZero is not a required compatibility
+step for its newer default behaviour.
 
 If these steps do not resolve a freeze, report your MeshCore version, OS image,
-CAP revision, and error log. This conflict is one possible cause, not a diagnosis
-of every freeze. Never post your identity database or private keys in an issue.
+CAP revision, and error log. A radio conflict is one possible cause, not a
+diagnosis of every freeze. Never post your identity database or private keys in
+an issue.
 
 ## Radio settings and CAPs
 

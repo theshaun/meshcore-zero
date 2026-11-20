@@ -1,11 +1,13 @@
 # Changelog
 
-## Unreleased
+## Documentation updates — 2026-11-20
 
-- Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
-- Document the current service-detection limitation and how to restore MeshZero startup.
+- Clarify that current MeshZero defaults background operation off and releases the radio about ten seconds after exit; uninstalling is not normally required.
+- Explain MeshCore's service-state detection can still produce a false warning after hardware release, and distinguish a temporary service stop from optional startup changes.
 
 ## 0.1.23 — 2026-11-20
+
+- Submit the tested map/GPS revision to the Cardputer app store.
 
 - Add a compact Map tab with north-up offline radar, two distance rings, coloured node markers, zoom/auto-fit, selection and node details.
 - Read CAP GPS at 115200 baud without receiver commands; validate NMEA checksums/fixes, restore UART settings at exit, and avoid active GPS daemons or serial consoles.

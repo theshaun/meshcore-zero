@@ -63,7 +63,7 @@ class BackupUI:
         elif self.state=='files':
             if key in ('up','down'):self.selected=max(0,min(len(self.files),self.selected+(1 if key=='down' else -1)))
             elif key=='enter':
-                if self.selected==len(self.files):self.state='path';self.input=str(self.root/'backups'/'')
+                if self.selected==len(self.files):self.state='path';self.input=str(self.root/'backups')+'/'
                 else:self.path=self.files[self.selected];self.action='read';self.state='password'
         elif self.state=='path':
             if key=='backspace':self.input=self.input[:-1]

@@ -118,6 +118,9 @@ class MenuTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_backup_ui_masks_password_confirm_defaults_cancel_and_queues_no_real_restore(self):
         self.ui.screen='settings';self.ui.selected=7;await self.ui.key('enter')
+        self.ui.backup_ui.selected=1;await self.ui.key('enter')
+        self.ui.backup_ui.selected=len(self.ui.backup_ui.files);await self.ui.key('enter')
+        self.assertTrue(self.ui.backup_ui.input.endswith('/'));await self.ui.key('escape')
         await self.ui.key('enter')
         for c in PASSWORD:await self.ui.key(c)
         with patch.object(self.ui.text,'draw',wraps=self.ui.text.draw) as draw:self.ui.render()

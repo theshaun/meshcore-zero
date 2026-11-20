@@ -245,7 +245,8 @@ Use the recovery file through the same menu to undo a successful restore.
 Backup encryption uses Argon2id password derivation and XSalsa20-Poly1305
 (SecretBox) authentication. Wrong passwords and damaged or unsupported files are
 rejected before any local data is replaced. Files are owner-readable only.
-The current backup safety limit is 16 MiB of unencrypted data; larger datasets
+The current backup safety limits are 16 MiB of unencrypted data and 100,000 rows
+per table; larger datasets
 require the manual directory backup below. `.mczb` is MeshCore Zero's full-backup
 format, separate from the firmware-compatible identity import/export above.
 Avoid using the same restored identity on two active devices simultaneously.

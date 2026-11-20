@@ -473,7 +473,7 @@ class _SendOpsMixin:
             return SentResult(success=False)
 
     async def send_channel_message(
-        self, channel_idx: int, text: str, timestamp: Optional[int] = None
+        self, channel_idx: int, text: str, timestamp: Optional[int] = None, *, scope_key: Optional[bytes] = None
     ) -> bool:
         """Send a message to a channel."""
         channel = self.channels.get(channel_idx)
@@ -489,7 +489,13 @@ class _SendOpsMixin:
                 channels_config=self.channels.get_channels(),
                 timestamp=timestamp,
             )
-            self._apply_flood_scope(pkt)
+            if scope_key is None:
+                self._apply_flood_scope(pkt)
+            else:
+                if len(scope_key) != 16:
+                    raise ValueError("Scope key must be 16 bytes")
+                self._scope_packet(pkt, scope_key)
+                pkt._flood_scope_applied = True
             self._apply_path_hash_mode(pkt)
             # Record before awaiting the transport because Repeater can queue
             # a local transmission back through its companion bridges first.

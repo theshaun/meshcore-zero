@@ -52,6 +52,15 @@ class UI:
         self.leave_choice = 1
         from .identity_ui import IdentityUI
         self.identity_ui = IdentityUI(self)
+        from .channel_ui import ChannelUI
+        self.channel_ui = ChannelUI(self)
+        self.pending_restore = None
+        from .backup_ui import BackupUI
+        self.backup_ui = BackupUI(self)
+        result=store.get('restore_result')
+        if result:
+            self.backup_ui.result=result;self.backup_ui.state='result';self.screen='backup'
+            with store.db:store.db.execute("DELETE FROM settings WHERE key='restore_result'")
         self.repeater = None
         self.repeater_state = ''
         self.repeater_password = ''
@@ -118,7 +127,7 @@ class UI:
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
-            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),
+            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -241,6 +250,12 @@ class UI:
                 self.screen = 'update'
                 self.start_update('download')
             return
+        if self.screen=='backup':
+            await self.backup_ui.key(key)
+            return
+        if self.screen=='channel_options':
+            await self.channel_ui.key(key)
+            return
         if self.screen=='identity':
             await self.identity_ui.key(key)
             return
@@ -328,10 +343,10 @@ class UI:
                 self.running = False
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 7
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 8
             if key=='backspace' and self.screen=='inbox' and count:
                 chat=self.store.chats()[min(self.selected,count-1)]
-                if chat['kind']=='channel':self.leave_target=dict(chat);self.leave_choice=1
+                if chat['kind']=='channel':self.channel_ui.open(chat)
                 return
             if key in ('up', 'down'):
                 self.selected = max(0, min(max(0, count - 1), self.selected + (1 if key == 'down' else -1)))
@@ -371,6 +386,8 @@ class UI:
                         self.store.set('message_sound', 'off' if self.store.get('message_sound','on') == 'on' else 'on')
                     elif self.selected == 6:
                         self.identity_ui.open()
+                    elif self.selected == 7:
+                        self.backup_ui.open()
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
@@ -465,6 +482,8 @@ class UI:
             return self.draw_launch_notice()
         if self.startup_release:
             return self.draw_startup_update()
+        if self.screen=='backup':return self.backup_ui.draw()
+        if self.screen=='channel_options':return self.channel_ui.draw()
         if self.screen=='identity':return self.identity_ui.draw()
         if self.leave_target:return self.draw_leave()
         if self.screen == 'chat' and self._chat_cache_key == self.render_key(False):
@@ -492,14 +511,14 @@ class UI:
                 if chat['kind']=='dm':
                     text(13,y+1,'@',ACCENT,14,True)
                 left = 29 if chat['kind']=='dm' else 13
-                text(left,y+1,chat['name'],size=12,bold=True,width=270-left)
+                text(left,y+1,chat['name']+(' · muted' if chat.get('muted') else ''),size=12,bold=True,width=270-left)
                 if chat['unread']:
                     text(284,y+1,str(chat['unread']),ACCENT,10,width=25)
                 preview = chat['preview'] or ('Say hello to the mesh' if chat['id']=='public' else 'No messages yet')
                 if chat['status'] in ('failed','unconfirmed','sending','interrupted'):
                     preview = chat['status'].capitalize() + ' · ' + preview
                 text(left,y+17,preview,MUTED,10,width=302-left)
-            if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  ↑↓ select  Enter open  Backspace leave'
+            if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  ↑↓ select  Enter open  Backspace options'
         elif self.screen in ('join','name'):
             text(10,27,'Join a hashtag channel' if self.screen=='join' else 'Your node name',size=14,bold=True)
             text(10,49,'Same hashtag connects everyone.' if self.screen=='join' else 'Shown to other people on the mesh.',MUTED,10)
@@ -577,7 +596,7 @@ class UI:
             hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export']
+            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore']
             start=max(0,self.selected-4)
             for i in range(start,min(len(labels),start+5)):
                 label=labels[i]
@@ -618,7 +637,12 @@ class UI:
                     'Enter install   Esc back' if self.update_state=='password' else
                     'Please wait…' if self.update_state=='busy' else 'Enter check again   Esc back')
         elif self.screen == 'chat':
-            text(9,23,self.chat['name'],ACCENT,11,True,width=300)
+            from .regions import DEFAULT_SCOPES
+            row=self.store.db.execute('SELECT scope FROM chats WHERE id=?',(self.chat['id'],)).fetchone()
+            region=self.backend.region if self.backend and self.backend.engine else self.store.get('region','US')
+            scope=(row[0] or DEFAULT_SCOPES.get(region)) if row and self.chat['kind']=='channel' else None
+            text(9,23,self.chat['name'],ACCENT,11,True,width=195 if scope else 300)
+            if scope:text(207,24,'Scope: '+scope,MUTED,9,width=106)
             history = self.store.history(self.chat['id'])
             lines=self.chat_lines(history)
             self.scroll=min(self.scroll,max(0,len(lines)-7))
@@ -681,7 +705,7 @@ class UI:
         return img
 
     def active_tab(self):
-        if self.screen in ('inbox','chat'): return 0
+        if self.screen in ('inbox','chat','channel_options'): return 0
         if self.screen == 'join': return 1
         if self.screen in ('nodes','repeater'): return 2
         return 3

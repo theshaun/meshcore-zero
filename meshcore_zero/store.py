@@ -37,6 +37,9 @@ class Store:
           CREATE TABLE IF NOT EXISTS nodes(key TEXT PRIMARY KEY, data TEXT);
           CREATE INDEX IF NOT EXISTS history ON messages(chat,id);
         """)
+        chat_columns={row[1] for row in self.db.execute('PRAGMA table_info(chats)')}
+        if 'muted' not in chat_columns:self.db.execute('ALTER TABLE chats ADD COLUMN muted INTEGER NOT NULL DEFAULT 0')
+        if 'scope' not in chat_columns:self.db.execute('ALTER TABLE chats ADD COLUMN scope TEXT')
         columns={row[1] for row in self.db.execute('PRAGMA table_info(messages)')}
         for name,kind in (('tx_hash','TEXT'),('heard_at','INTEGER'),('heard_hops','INTEGER')):
             if name not in columns:
@@ -87,6 +90,23 @@ class Store:
         with self.db:
             self.db.execute('DELETE FROM messages WHERE chat=?',(chat,))
             self.db.execute('DELETE FROM chats WHERE id=?',(chat,))
+
+    def is_muted(self,chat):
+        row=self.db.execute('SELECT muted FROM chats WHERE id=?',(chat,)).fetchone()
+        return bool(row and row[0])
+
+    def mute(self,chat,value):
+        with self.db:self.db.execute("UPDATE chats SET muted=? WHERE id=? AND kind='channel'",(int(bool(value)),chat))
+
+    def set_scope(self,chat,value):
+        value=value.strip().lower().lstrip('#')
+        if value and not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,29}',value):raise ValueError('Use 1–30 letters, numbers, _ or -')
+        with self.db:self.db.execute("UPDATE chats SET scope=? WHERE id=? AND kind='channel'",(value or None,chat))
+
+    def clear_history(self,chat):
+        with self.db:
+            self.db.execute('DELETE FROM messages WHERE chat=?',(chat,))
+            self.db.execute('UPDATE chats SET unread=0 WHERE id=?',(chat,))
 
     def chats(self):
         return [dict(r) for r in self.db.execute("""SELECT c.*,

@@ -87,12 +87,12 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - **Escape** returns to Chats; Escape again exits to the launcher.
 - **Join** opens with `#` already entered. Type the channel name;
   entering another leading `#` is harmless.
-- In **Chats**, highlight a channel and press **Backspace** to leave it. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Direct messages are unaffected. To rejoin Public, open **Join**, press **Down** to select **Join / open Public channel**, then **Enter**.
+- In **Chats**, highlight a channel and press **Backspace** for **Channel options**: mute/unmute notifications, Scope, clear history, or leave. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Muted channels keep receiving messages and unread counts, without chimes or notification toasts. Clearing history keeps the channel joined. Direct messages are unaffected. To rejoin Public, open **Join**, press **Down** to select **Join / open Public channel**, then **Enter**.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Repeaters and room servers remain visible in the list.
 - Select a **Repeater** and press **Enter**, then confirm **Request Status** and enter its password. The password is masked. After entry, choose whether to save it (**No** is selected by default). A successful status request saves it encrypted on this device if you choose **Yes**; future requests reuse it for that repeater. Press **Backspace** on the repeater confirmation or status screen to forget it. Status shows battery voltage and an approximate single-cell Li-ion percentage, uptime, noise floor, last SNR and the repeater's UTC clock. Unsupported clock queries show **Unavailable**; other battery types may not have a meaningful percentage.
 - After startup checks and any update decision, MeshCore sends one flood advert to introduce your node. You can also use **Settings → Announce this node**.
-- **Settings** controls region, coding rate, node name, announcements, message sound, identity import/export, and app updates.
+- **Settings** controls region, coding rate, node name, announcements, message sound, identity import/export, encrypted backup/restore, and app updates.
 - The display follows the system **Settings → Screen → DarkTime** timeout, including **Never**. The first keypress wakes the screen without activating anything. Messages continue arriving while the screen is dark.
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
@@ -193,8 +193,11 @@ name/key can read them. Channel display names are not authenticated identities.
 The **Scotland · ScotMesh** preset uses the UK/EU radio settings (869.618 MHz,
 BW62.5, SF8, CR4/8), 3-byte path hashes, and default flood scope **sco**.
 Restart to apply it. The default scope covers channel floods and startup/manual
-flood adverts; joining a channel does not select a separate scope. Local
-per-channel scopes such as `edi`, `gla`, or `ioi` are not configurable yet.
+flood adverts; joining a channel does not select a separate scope. In **Chats → Backspace →
+Scope**, enter an override such as `edi`, `gla`, `ioi`, `wls` or `eng-ne`.
+Clear the field to inherit the regional default. The effective scope appears in
+the chat header. An override affects future outgoing channel floods, including
+Public; it does not filter incoming messages or change adverts/other channels.
 See the [ScotMesh setup guide](https://wiki.scotmesh.uk/en/MeshCore/getting-started).
 
 ## Identity import and export
@@ -219,6 +222,33 @@ firmware private-key export and cannot be pasted here.
 Paths follow your selected data directory if overridden. Keep key files and
 backups private, and remove transfer files when finished. Avoid operating two
 active devices with the same identity at once.
+
+## Encrypted backup and restore
+
+Open **Settings → Backup / restore**. **Create encrypted backup** asks for a
+password twice (8–128 characters) and writes a private `.mczb` file under
+`~/.local/share/meshcore-zero/backups/`. It includes your identity, previous
+identity backup, settings, channels and scopes/mute choices, DMs, all saved
+messages, discovered nodes and saved repeater passwords. Copy the file off the
+device with your preferred SSH/SFTP tool. Keep the password separately: the app
+does not save it and cannot recover a forgotten password.
+
+**Restore encrypted backup** lists local backup files, or accepts another file
+path. Copy a backup onto the device first. Enter its password to validate it and
+preview its public identity and conversation counts. **Cancel** is selected by
+default. Restoring replaces the entire local dataset, including radio settings;
+it does not merge histories. Before replacement, an encrypted `before-restore-…`
+recovery backup is saved with the same password you just entered. The radio stops,
+data is replaced transactionally, and the app restarts with a result screen.
+Use the recovery file through the same menu to undo a successful restore.
+
+Backup encryption uses Argon2id password derivation and XSalsa20-Poly1305
+(SecretBox) authentication. Wrong passwords and damaged or unsupported files are
+rejected before any local data is replaced. Files are owner-readable only.
+The current backup safety limit is 16 MiB of unencrypted data; larger datasets
+require the manual directory backup below. `.mczb` is MeshCore Zero's full-backup
+format, separate from the firmware-compatible identity import/export above.
+Avoid using the same restored identity on two active devices simultaneously.
 
 ## Your data
 

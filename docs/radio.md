@@ -44,8 +44,10 @@ presets remain unscoped and keep their existing path-hash defaults.
 
 Select Scotland explicitly and restart; installing this update does not switch
 your region or join channels. Join `#scotland` yourself for the community chat.
-Per-channel local scope overrides are not exposed yet, so channels under this
-preset all inherit `sco`. Scottish on-air forwarding still needs local field
+Channels inherit `sco` unless a scope override is saved in Chats → Backspace →
+Scope. A blank scope field restores inheritance. Overrides affect only that
+channel's outgoing floods, including Public, and never change the node's default
+or advert scope. Scottish on-air forwarding still needs local field
 validation; tests verify serialized scope codes and 3-byte path encoding offline.
 
 ## Japan (experimental)

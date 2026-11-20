@@ -179,7 +179,7 @@ class Backend:
             sender, separator, body = event.text.partition(': ')
             mid = self.store.add(chat, sender if separator else event.sender_name, body if separator else event.text, event.timestamp,
                 token=event.packet_hash, unread=True)
-            if mid is not None:
+            if mid is not None and not self.store.is_muted(chat):
                 self.notify('New message · ' + event.channel_name)
                 self.message_received()
         self.engine.sync_next_message()  # history has durably accepted the event
@@ -214,7 +214,11 @@ class Backend:
             self._outgoing_started=time.monotonic()
             try:
                 if chat['kind'] == 'channel':
-                    ok = await self.engine.send_channel_message(self.channels[chat['id']], text)
+                    scope=self.store.db.execute('SELECT scope FROM chats WHERE id=?',(chat['id'],)).fetchone()[0]
+                    if scope:
+                        from openhop_core.protocol.transport_keys import get_auto_key_for
+                        ok=await self.engine.send_channel_message(self.channels[chat['id']],text,scope_key=get_auto_key_for(scope))
+                    else:ok = await self.engine.send_channel_message(self.channels[chat['id']], text)
                     state = 'sent' if ok else 'failed'
                 else:
                     result = await self.engine.send_text_message(bytes.fromhex(chat['id']), text, wait_for_ack=True)

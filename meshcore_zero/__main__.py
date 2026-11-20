@@ -89,6 +89,19 @@ async def run(args):
         for task in list(ui.tasks): task.cancel()
         await asyncio.gather(*ui.tasks,return_exceptions=True)
         await backend.close()
+        if ui.pending_restore:
+            from .backup import apply_restore
+            if fb:fb.write(ui.backup_ui.draw())
+            data,password=ui.pending_restore;ui.pending_restore=None
+            try:
+                apply_restore(store,data,password)
+            except Exception:
+                logging.getLogger(__name__).error('Backup restore failed; database transaction rolled back')
+                result='Restore failed · original data kept'
+            else:result='Backup restored successfully'
+            finally:data=password=None
+            try:store.set('restore_result',result)
+            except Exception:logging.getLogger(__name__).error('Could not save restore result notice')
         await sound.close()
         await screen_idle.close()
         if keyboard:

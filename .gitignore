@@ -15,3 +15,4 @@ dist/
 # Private identity transfer files
 identity-import.txt
 identity-export.txt
+*.mczb

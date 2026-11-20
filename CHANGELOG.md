@@ -5,6 +5,15 @@
 - Add MeshZero conflict troubleshooting: disable background operation, stop/disable its service over SSH or CLI, or uninstall it.
 - Document the current service-detection limitation and how to restore MeshZero startup.
 
+## 0.1.22 — 2026-11-20
+
+- Open channel options with Backspace in Chats: mute/unmute notifications, set an optional scope override, clear history or leave, with Cancel-first destructive confirmations.
+- Keep muted-channel messages and unread counts while suppressing their chime and toast.
+- Apply scope overrides to individual channel packets without changing the node default, other channels or adverts; display the effective scope in chat.
+- Add Settings → Backup / restore for password-encrypted, authenticated backups of identity, settings, conversations, messages, nodes and saved repeater passwords.
+- Validate backups before confirmation, save an encrypted pre-restore recovery copy, stop the radio before replacing data transactionally, and restart with a visible result.
+- Keep secrets masked, use private local files and exclude backup files from Git. Backup files are not firmware identity exports.
+
 ## 0.1.21 — 2026-11-20
 
 - Publish the APPLaunch/LCD-verified revision to GitHub and the app store; verify global and China registry checksums. Preserve the test device's existing identity, channels, messages and US radio profile.

@@ -1,7 +1,9 @@
 The native protocol engine in `vendor/openhop_core` is openHop Core (MIT),
-vendored without modification from commit
+vendored from commit
 `e07722ea96093752ac8b3c6772d653f8b68224bf`:
 https://github.com/openhop-dev/openhop_core
+A local extension in `companion/base_send.py` adds a packet-local optional
+channel scope key without changing the node default or advert scope.
 The license is retained in `vendor/OPENHOP_LICENSE`. Its bundled LoRaRF driver
 retains its upstream notices. Runtime wheels retain their license metadata in
 the package's `runtime` directory.

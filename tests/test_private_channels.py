@@ -53,8 +53,9 @@ class PrivateTests(unittest.IsolatedAsyncioTestCase):
         await u.key('enter');await u.key('enter');self.assertEqual(u.screen,'chat');self.assertEqual(u.join_ui.secret,'')
         self.assertEqual(channel_type(u.chat),'private');u.render();await u.key('escape');frame=u.render()
         self.assertEqual(frame.size,(320,170));self.assertEqual(len(self.store.chats()),2)
-        await u.key('tab');u.join_ui.field=2
+        await u.key('tab');self.assertEqual(u.join_ui.type,0);await u.key('right');u.join_ui.field=2
         for c in KEY.hex():await u.key(c)
+        self.assertEqual(u.join_ui.secret,KEY.hex())
         await u.key('tab');self.assertEqual(u.join_ui.secret,'')
 
     async def test_independent_firmware_packet_reaches_private_history_wrong_key_is_rejected(self):

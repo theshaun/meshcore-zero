@@ -86,7 +86,8 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - Type in a conversation and press **Enter** to send.
 - **Escape** returns to Chats; Escape again exits to the launcher.
 - **Join** lets you choose **Hashtag**, **Private**, or **Public**. Use **Left/Right**
-  on Type and **Up/Down** between fields. Hashtag names start with `#`; an extra
+  on Type and **Up/Down** between fields. Hashtag is selected every time Join
+  opens, with any hashtag-name draft preserved. Hashtag names start with `#`; an extra
   leading `#` is harmless. For Private, enter a local name and the shared key,
   then select **Join private**. For Public, select **Join / open Public**.
 - In **Chats**, highlight a channel and press **Backspace** for **Channel options**: mute/unmute notifications, Scope, clear history, or leave. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Muted channels keep receiving messages and unread counts, without chimes or notification toasts. Clearing history keeps the channel joined. Direct messages are unaffected. To rejoin Public, open **Join**, select **Public** with Left/Right on Type, then choose **Join / open Public**.

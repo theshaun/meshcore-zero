@@ -97,7 +97,7 @@ class UI:
         self.screen = TAB_SCREENS[index]
         self.menu, self.selected = -1, 0
         self.draft = self.join_draft if index == 1 else ''
-        if index==1:self.join_ui.field=0
+        if index==1:self.join_ui.type=0;self.join_ui.field=0
 
     async def repeater_work(self, public_key, password, save_password=None):
         from .repeater import request_status

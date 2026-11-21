@@ -7,7 +7,7 @@
 
 ## 0.1.24 — 2026-11-20
 
-- Replace Join with a channel-type selector for Hashtag, Private and Public, showing only the required fields.
+- Replace Join with a channel-type selector for Hashtag, Private and Public, showing only the required fields and defaulting to Hashtag on every visit.
 - Accept firmware-compatible 16-byte private channel keys as 32 hex characters or Base64; mask key entry and clear it when leaving the form.
 - Reject zero/Public keys, name-derived keys, ambiguous names and duplicate channel-key subscriptions. Preserve existing history when reopening an already-joined private key.
 - Distinguish public/hashtag channels with a # marker, private channels with a compact vector lock, and DMs with @ in Chats; mark private chat headers too.

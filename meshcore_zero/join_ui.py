@@ -20,9 +20,10 @@ class JoinUI:
         if key=='tab':self.clear_secret();u.switch_tab(2);return
         if key=='escape':self.clear_secret();u.switch_tab(0);return
         if key in ('up','down'):self.field=max(0,min(self.fields()-1,self.field+(1 if key=='down' else -1)));return
-        if self.field==0 and key in ('left','right','enter'):
+        if self.field==0 and key in ('left','right'):
             self.change_type(-1 if key=='left' else 1);return
         if key=='enter':
+            if self.field==0:self.field=1;return
             if self.type==2 or self.type==0:self.submit()
             elif self.field<3:self.field+=1
             else:self.submit()

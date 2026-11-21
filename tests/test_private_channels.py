@@ -42,7 +42,8 @@ class PrivateTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):join_private(self.store,'Renamed',hashlib.sha256(b'#testing').digest()[:16].hex())
 
     async def test_join_form_masks_secret_clears_it_on_leave_and_draws_private_marker(self):
-        u=self.ui;await u.key('tab');await u.key('right');self.assertEqual(u.join_ui.type,1)
+        u=self.ui;await u.key('tab');await u.key('enter');self.assertEqual(u.join_ui.field,1);self.assertEqual(u.join_ui.type,0)
+        await u.key('up');await u.key('right');self.assertEqual(u.join_ui.type,1)
         await u.key('down')
         for c in 'Family':await u.key(c)
         await u.key('enter')

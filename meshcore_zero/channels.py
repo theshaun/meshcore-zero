@@ -40,7 +40,7 @@ def join_private(store,name,text):
     raw=parse_key(text);name=validate_private(name,raw)
     rows=list(store.db.execute("SELECT * FROM chats WHERE kind='channel'"))
     for row in rows:
-        if row['secret']==raw.hex():
+        if row['secret'].lower()==raw.hex():
             if channel_type(row)=='private':return row['id']
             raise ValueError('Key belongs to an existing public channel')
     if any(row['name'].casefold()==name.casefold() for row in rows):raise ValueError('Channel name already used · choose another')

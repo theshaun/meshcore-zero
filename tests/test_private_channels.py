@@ -31,6 +31,8 @@ class PrivateTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):parse_key(text)
         cid=join_private(self.store,'Family 🪐',KEY.hex());self.assertEqual(channel_type(self.store.chats()[-1]),'private')
         self.assertEqual(join_private(self.store,'Different local label',base64.b64encode(KEY).decode()),cid)
+        with self.store.db:self.store.db.execute('UPDATE chats SET secret=? WHERE id=?',(KEY.hex().upper(),cid))
+        self.assertEqual(join_private(self.store,'Same imported key',KEY.hex()),cid)
         self.store.add(cid,'Fixture','Keep history');self.assertEqual(len(self.store.history(cid)),1)
         for name in ('','Public','#family','x'*33,'bad\x00name'):
             with self.assertRaises(ValueError):join_private(self.store,name,bytes(range(2,18)).hex())

@@ -520,9 +520,11 @@ class UI:
                 typ=channel_type(chat)
                 if typ=='private':
                     # Vector lock is legible even when a font lacks the glyph.
-                    d.arc((14,y+4,22,y+13),180,360,fill=ACCENT,width=2)
-                    d.rounded_rectangle((12,y+10,24,y+20),2,outline=ACCENT,width=1)
-                    d.line((18,y+13,18,y+16),fill=ACCENT)
+                    d.arc((16,y+3,20,y+9),180,360,fill=ACCENT,width=1)
+                    d.line((16,y+6,16,y+8),fill=ACCENT)
+                    d.line((20,y+6,20,y+8),fill=ACCENT)
+                    d.rounded_rectangle((14,y+7,22,y+14),1,outline=ACCENT,width=1)
+                    d.line((18,y+9,18,y+11),fill=ACCENT)
                 else:text(13,y+1,'@' if typ=='dm' else '#',ACCENT,14,True)
                 left=30
                 display=chat['name'].lstrip('#') if typ=='hashtag' else chat['name']

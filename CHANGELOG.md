@@ -7,6 +7,8 @@
 
 ## 0.1.25 — 2026-11-20
 
+- Publish the physically confirmed correction to GitHub and the app store; verify both store registries against the tested package checksum.
+
 - Give Public a compact vector globe in Chats and its chat header, distinct from hashtag channels (#), private channels (lock) and direct messages (@).
 
 ## 0.1.24 — 2026-11-20

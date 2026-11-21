@@ -81,6 +81,24 @@ class PhysicalTests(unittest.IsolatedAsyncioTestCase):
             await us.send(b'x'*200)
             self.assertEqual(len(us.sent),1)
 
+    async def test_exhausted_budget_releases_rx_buffer_after_rejection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            budget=AirtimeBudget(Path(tmp)/'airtime.sqlite',clock=lambda:10000)
+            budget.reserve(360)
+            class Driver:
+                def __init__(self,**cfg):self.__dict__.update(cfg);self.preamble_length=16;self.rx_ready=False
+                async def send(self,data):
+                    self._tx_buffer_busy=True
+                    try:return await self._execute_transmission(0)
+                    finally:await self._restore_rx_mode()
+                async def _execute_transmission(self,_):raise AssertionError('SetTx must not run')
+                async def _restore_rx_mode(self):self.rx_ready=not self._tx_buffer_busy
+            class Radio(RegionalRadioMixin,Driver):pass
+            radio=Radio(region='SCO',airtime_budget=budget,**PRESETS['SCO'])
+            with self.assertRaisesRegex(ValueError,'Hourly'):await radio.send(b'ack')
+            self.assertTrue(radio.rx_ready)
+            self.assertFalse(radio._tx_buffer_busy)
+
 
 class ConversationTests(unittest.IsolatedAsyncioTestCase):
     async def test_back_to_back_messages_and_advert_have_no_app_pause(self):

@@ -96,3 +96,10 @@ class RegionalRadioMixin:
                 self.airtime_error=str(exc)
                 raise
         return await super()._execute_transmission(*args,**kwargs)
+
+    async def _restore_rx_mode(self):
+        # The base driver only clears this on successful TX. A budget/privacy
+        # rejection happens after buffer ownership was set; release it before
+        # RX is rearmed so incoming terminal IRQs are delivered on failure too.
+        self._tx_buffer_busy=False
+        return await super()._restore_rx_mode()

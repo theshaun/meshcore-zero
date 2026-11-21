@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.27 — 2026-11-21
+
+- Release the driver’s transmit-buffer ownership before restoring receive mode after a rejected or failed send, including hourly budget exhaustion. Add a regression test ensuring SetTx is skipped and RX delivery remains enabled.
+
 ## 0.1.26 — 2026-11-21
 
 - Remove fixed message, advert and repeater-request cooldowns (issue #5).

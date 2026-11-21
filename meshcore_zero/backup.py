@@ -86,13 +86,22 @@ def validate(data):
         if not isinstance(r['id'],str) or r['id'] in ids or not isinstance(r['name'],str):fail()
         ids.add(r['id'])
         if r['kind']=='channel':
-            if r['id']!='public' and not re.fullmatch(r'#[a-z0-9][a-z0-9_-]{0,29}',r['id']):fail()
+            if r['id'].startswith('private:'):
+                from .channels import validate_private
+                if not re.fullmatch(r'private:[0-9a-f]{32}',r['id']):fail()
+                try:validate_private(r['name'],bytes.fromhex(r['secret']))
+                except (ValueError,TypeError):fail()
+            elif r['id']!='public' and not re.fullmatch(r'#[a-z0-9][a-z0-9_-]{0,29}',r['id']):fail()
             if not isinstance(r['secret'],str) or not re.fullmatch('[0-9a-fA-F]{32}',r['secret']):fail()
         elif r['kind']=='dm':
             if not re.fullmatch('[0-9a-fA-F]{64}',r['id']) or r['scope'] is not None:fail()
         else:fail()
         if r['muted'] not in (0,1) or not isinstance(r['unread'],int) or r['unread']<0:fail()
         if r['scope'] is not None and (not isinstance(r['scope'],str) or not re.fullmatch('[a-z0-9][a-z0-9_-]{0,29}',r['scope'])):fail()
+    channels=[r for r in data['chats'] if r['kind']=='channel']
+    for r in channels:
+        if r['id'].startswith('private:'):
+            if any(other['id']!=r['id'] and (other['secret'].lower()==r['secret'].lower() or other['name'].casefold()==r['name'].casefold()) for other in channels):fail()
     mids=set();tokens=set()
     for r in data['messages']:
         if not isinstance(r['id'],int) or r['id']<=0 or r['id'] in mids or r['chat'] not in ids:fail()

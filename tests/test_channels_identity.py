@@ -40,7 +40,7 @@ class ChannelTests(unittest.IsolatedAsyncioTestCase):
         reopened=Store(self.tmp.name)
         try:self.assertEqual(reopened.chats(),[])
         finally:reopened.db.close()
-        await self.ui.key('tab');await self.ui.key('down');await self.ui.key('enter')
+        await self.ui.key('tab');await self.ui.key('right');await self.ui.key('right');await self.ui.key('down');await self.ui.key('enter')
         self.assertEqual(self.ui.chat['id'],'public');self.assertEqual(self.ui.chat['secret'],PUBLIC_KEY)
 
     async def test_dm_backspace_does_not_offer_channel_leave(self):

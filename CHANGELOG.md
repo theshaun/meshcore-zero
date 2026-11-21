@@ -5,6 +5,15 @@
 - Clarify that current MeshZero defaults background operation off and releases the radio about ten seconds after exit; uninstalling is not normally required.
 - Explain MeshCore's service-state detection can still produce a false warning after hardware release, and distinguish a temporary service stop from optional startup changes.
 
+## 0.1.24 — 2026-11-20
+
+- Replace Join with a channel-type selector for Hashtag, Private and Public, showing only the required fields.
+- Accept firmware-compatible 16-byte private channel keys as 32 hex characters or Base64; mask key entry and clear it when leaving the form.
+- Reject zero/Public keys, name-derived keys, ambiguous names and duplicate channel-key subscriptions. Preserve existing history when reopening an already-joined private key.
+- Distinguish public/hashtag channels with a # marker, private channels with a vector lock, and DMs with @ in Chats; mark private chat headers too.
+- Include private channels in encrypted full backups and validate them on restore; keep older public/hashtag-only backups compatible.
+- Verify private group encryption/decryption against independent firmware-format packets without transmitting private-channel test traffic.
+
 ## 0.1.23 — 2026-11-20
 
 - Publish the tested map/GPS revision to the Cardputer app store; verify the global and China listings against the tested package checksum.

@@ -50,7 +50,8 @@ class UI:
         self.startup_release = None
         self.startup_update_choice = 0
         self.join_draft = '#'
-        self.join_public = False
+        from .join_ui import JoinUI
+        self.join_ui = JoinUI(self)
         self.leave_target = None
         self.leave_choice = 1
         from .identity_ui import IdentityUI
@@ -91,11 +92,12 @@ class UI:
         if self.screen == 'chat':
             self.drafts[self.chat['id']] = self.draft
         if self.screen == 'join':
+            self.join_ui.clear_secret()
             self.join_draft = self.draft
         self.screen = TAB_SCREENS[index]
         self.menu, self.selected = -1, 0
         self.draft = self.join_draft if index == 1 else ''
-        self.join_public = False
+        if index==1:self.join_ui.field=0
 
     async def repeater_work(self, public_key, password, save_password=None):
         from .repeater import request_status
@@ -134,7 +136,7 @@ class UI:
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
-            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.join_public,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),
+            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),self.join_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -256,6 +258,9 @@ class UI:
                     self.drafts[self.chat['id']] = self.draft
                 self.screen = 'update'
                 self.start_update('download')
+            return
+        if self.screen=='join':
+            await self.join_ui.key(key)
             return
         if self.screen in ('map','map_position','map_details','gps_sharing'):
             await self.map_ui.key(key)
@@ -406,22 +411,14 @@ class UI:
                         except Exception as exc:
                             self.notice(str(exc))
             return
-        if self.screen=='join' and key in ('up','down'):
-            self.join_public=not self.join_public
-            return
         if self.screen == 'chat' and key in ('up','down'):
             self.scroll = max(0, self.scroll + (1 if key == 'up' else -1))
             return
         if key == 'backspace':
-            self.draft = self.draft[:-1] if self.screen != 'join' or len(self.draft) > 1 else '#'
+            self.draft = self.draft[:-1]
         elif key == 'enter':
             try:
-                if self.screen == 'join':
-                    cid = self.store.join_public() if self.join_public else self.store.join(self.draft)
-                    if self.backend:
-                        self.backend.sync_channels()
-                    self.open_chat(next(c for c in self.store.chats() if c['id'] == cid))
-                elif self.screen == 'name':
+                if self.screen == 'name':
                     if not self.draft.strip() or len(self.draft.encode()) > 24:
                         raise ValueError('Name must be 1–24 bytes')
                     self.store.set('name', self.draft.strip())
@@ -438,9 +435,6 @@ class UI:
             except (ValueError, RuntimeError) as exc:
                 self.notice(str(exc))
         elif len(key) == 1 and key.isprintable():
-            if self.screen=='join':self.join_public=False
-            if self.screen == 'join' and key == '#' and self.draft == '#':
-                return
             limit = 150 if self.screen == 'chat' else 31
             if len((self.draft + key).encode()) <= limit:
                 self.draft += key
@@ -494,6 +488,7 @@ class UI:
             return self.draw_launch_notice()
         if self.startup_release:
             return self.draw_startup_update()
+        if self.screen=='join':return self.join_ui.draw()
         if self.screen in ('map','map_position','map_details','gps_sharing'):return self.map_ui.draw()
         if self.screen=='backup':return self.backup_ui.draw()
         if self.screen=='channel_options':return self.channel_ui.draw()
@@ -521,10 +516,17 @@ class UI:
                 d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if selected else PANEL)
                 if selected:
                     d.rounded_rectangle((5,y+4,7,y+26),1, fill=ACCENT)
-                if chat['kind']=='dm':
-                    text(13,y+1,'@',ACCENT,14,True)
-                left = 29 if chat['kind']=='dm' else 13
-                text(left,y+1,chat['name']+(' · muted' if chat.get('muted') else ''),size=12,bold=True,width=270-left)
+                from .channels import channel_type
+                typ=channel_type(chat)
+                if typ=='private':
+                    # Vector lock is legible even when a font lacks the glyph.
+                    d.arc((14,y+4,22,y+13),180,360,fill=ACCENT,width=2)
+                    d.rounded_rectangle((12,y+10,24,y+20),2,outline=ACCENT,width=1)
+                    d.line((18,y+13,18,y+16),fill=ACCENT)
+                else:text(13,y+1,'@' if typ=='dm' else '#',ACCENT,14,True)
+                left=30
+                display=chat['name'].lstrip('#') if typ=='hashtag' else chat['name']
+                text(left,y+1,display+(' · muted' if chat.get('muted') else ''),size=12,bold=True,width=270-left)
                 if chat['unread']:
                     text(284,y+1,str(chat['unread']),ACCENT,10,width=25)
                 preview = chat['preview'] or ('Say hello to the mesh' if chat['id']=='public' else 'No messages yet')
@@ -532,18 +534,13 @@ class UI:
                     preview = chat['status'].capitalize() + ' · ' + preview
                 text(left,y+17,preview,MUTED,10,width=302-left)
             if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  ↑↓ select  Enter open  Backspace options'
-        elif self.screen in ('join','name'):
-            text(10,27,'Join a hashtag channel' if self.screen=='join' else 'Your node name',size=14,bold=True)
-            text(10,49,'Same hashtag connects everyone.' if self.screen=='join' else 'Shown to other people on the mesh.',MUTED,10)
-            d.rounded_rectangle((8,74,311,99),4,fill=SELECT if self.screen!='join' or not self.join_public else PANEL)
-            text(15,78,(self.draft or ('#asheville' if self.screen=='join' else 'Your name'))+'|',ACCENT,13,width=287)
-            if self.screen=='join':
-                d.rounded_rectangle((8,111,311,137),4,fill=SELECT if self.join_public else PANEL)
-                text(15,116,'Join / open Public channel',ACCENT if self.join_public else MUTED,11)
-                hint='↑↓ choose   Enter join   Esc back'
-            else:
-                text(10,109,'Enter saves your name.',MUTED,10)
-                hint = 'Enter save    Esc back'
+        elif self.screen == 'name':
+            text(10,27,'Your node name',size=14,bold=True)
+            text(10,49,'Shown to other people on the mesh.',MUTED,10)
+            d.rounded_rectangle((8,74,311,99),4,fill=SELECT)
+            text(15,78,(self.draft or 'Your name')+'|',ACCENT,13,width=287)
+            text(10,109,'Enter saves your name.',MUTED,10)
+            hint='Enter save    Esc back'
         elif self.screen == 'nodes':
             nodes = self.nodes()
             if not nodes:
@@ -654,7 +651,14 @@ class UI:
             row=self.store.db.execute('SELECT scope FROM chats WHERE id=?',(self.chat['id'],)).fetchone()
             region=self.backend.region if self.backend and self.backend.engine else self.store.get('region','US')
             scope=(row[0] or DEFAULT_SCOPES.get(region)) if row and self.chat['kind']=='channel' else None
-            text(9,23,self.chat['name'],ACCENT,11,True,width=195 if scope else 300)
+            from .channels import channel_type
+            typ=channel_type(self.chat);left=9
+            if typ=='private':
+                d.arc((10,24,16,32),180,360,fill=ACCENT,width=1)
+                d.rounded_rectangle((8,29,18,35),1,outline=ACCENT)
+                d.line((13,31,13,33),fill=ACCENT);left=23
+            title=('# '+self.chat['name']) if typ=='public' else self.chat['name']
+            text(left,23,title,ACCENT,11,True,width=(195 if scope else 300)-(left-9))
             if scope:text(207,24,'Scope: '+scope,MUTED,9,width=106)
             history = self.store.history(self.chat['id'])
             lines=self.chat_lines(history)

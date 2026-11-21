@@ -6,7 +6,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-PUBLIC_KEY = "8b3387e9c5cdea6ac9e5edbaa115cd72"
+from .channels import PUBLIC_KEY
 from .regions import PRESETS
 
 

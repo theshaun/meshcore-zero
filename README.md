@@ -85,9 +85,11 @@ contains timing fields, not passwords or messages. For installer errors, inspect
   Fn arrow combinations where necessary.
 - Type in a conversation and press **Enter** to send.
 - **Escape** returns to Chats; Escape again exits to the launcher.
-- **Join** opens with `#` already entered. Type the channel name;
-  entering another leading `#` is harmless.
-- In **Chats**, highlight a channel and press **Backspace** for **Channel options**: mute/unmute notifications, Scope, clear history, or leave. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Muted channels keep receiving messages and unread counts, without chimes or notification toasts. Clearing history keeps the channel joined. Direct messages are unaffected. To rejoin Public, open **Join**, press **Down** to select **Join / open Public channel**, then **Enter**.
+- **Join** lets you choose **Hashtag**, **Private**, or **Public**. Use **Left/Right**
+  on Type and **Up/Down** between fields. Hashtag names start with `#`; an extra
+  leading `#` is harmless. For Private, enter a local name and the shared key,
+  then select **Join private**. For Public, select **Join / open Public**.
+- In **Chats**, highlight a channel and press **Backspace** for **Channel options**: mute/unmute notifications, Scope, clear history, or leave. Confirm **Leave** to remove that channel and its saved messages from this device; **Cancel** is selected by default. Muted channels keep receiving messages and unread counts, without chimes or notification toasts. Clearing history keeps the channel joined. Direct messages are unaffected. To rejoin Public, open **Join**, select **Public** with Left/Right on Type, then choose **Join / open Public**.
 - **Nodes** lists discovered nodes. Select a chat node and press Enter to start
   a direct message. Repeaters and room servers remain visible in the list.
 - Select a **Repeater** and press **Enter**, then confirm **Request Status** and enter its password. The password is masked. After entry, choose whether to save it (**No** is selected by default). A successful status request saves it encrypted on this device if you choose **Yes**; future requests reuse it for that repeater. Press **Backspace** on the repeater confirmation or status screen to forget it. Status shows battery voltage and an approximate single-cell Li-ion percentage, uptime, noise floor, last SNR and the repeater's UTC clock. Unsupported clock queries show **Unavailable**; other battery types may not have a meaningful percentage.
@@ -97,7 +99,8 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
 The inbox combines channels and direct messages, with message previews and
-unread counts. Names and messages support offline color Unicode emoji.
+unread counts. **#** marks Public/hashtag channels, a **lock** marks private
+channels, and **@** marks direct messages. Names and messages support offline color Unicode emoji.
 
 ## Troubleshooting: MeshCore freezes or cannot use the LoRa CAP
 
@@ -194,6 +197,29 @@ Clear the field to inherit the regional default. The effective scope appears in
 the chat header. An override affects future outgoing channel floods, including
 Public; it does not filter incoming messages or change adverts/other channels.
 See the [ScotMesh setup guide](https://wiki.scotmesh.uk/en/MeshCore/getting-started).
+
+## Private channels
+
+Choose **Join → Type: Private**. Enter a channel name (1–32 UTF-8 bytes, without
+an initial `#`) and its shared **16-byte key**: either **32 hexadecimal
+characters** or **Base64** (normally 24 characters, including padding). Standard
+and URL-safe Base64 are accepted. This is a channel key, not a node's private
+identity key or a passphrase. Obtain it securely from the private channel's owner
+or create one in a compatible MeshCore client.
+
+The name is a local label; the shared key determines which messages the devices
+can decrypt. Keys are masked on entry and cleared from the form when you leave. Shared keys
+are stored in the app's private local database; keep that directory private.
+Known Public/zero keys and keys derived from that name as a hashtag are rejected.
+Joining a key already present opens its existing conversation without replacing
+its history. Private channels support the same mute, scope, clear and leave
+options as other channels. No key is shown in chat titles, logs or notifications.
+
+Private channel configuration and messages are included in encrypted `.mczb`
+backups. Restoring a backup containing private channels requires v0.1.24 or
+later; older backups remain supported. Anyone with the shared channel key can
+read its traffic. Public and hashtag keys are publicly known or derivable and
+are not private-channel access control.
 
 ## Map and GPS
 

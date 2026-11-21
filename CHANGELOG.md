@@ -5,6 +5,10 @@
 - Clarify that current MeshZero defaults background operation off and releases the radio about ten seconds after exit; uninstalling is not normally required.
 - Explain MeshCore's service-state detection can still produce a false warning after hardware release, and distinguish a temporary service stop from optional startup changes.
 
+## 0.1.25 — 2026-11-20
+
+- Give Public a compact vector globe in Chats and its chat header, distinct from hashtag channels (#), private channels (lock) and direct messages (@).
+
 ## 0.1.24 — 2026-11-20
 
 - Publish the APPLaunch/LCD-verified release to GitHub and the app store; verify global and China registry package checksums.

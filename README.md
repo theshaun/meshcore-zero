@@ -100,7 +100,7 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - New channel messages and DMs play a short chime at the system volume. System mute silences it; **Settings → Message sound** switches it off for MeshCore. Receiving a message does not wake the screen.
 
 The inbox combines channels and direct messages, with message previews and
-unread counts. **#** marks Public/hashtag channels, a **lock** marks private
+unread counts. A **globe** marks Public, **#** marks hashtag channels, a **lock** marks private
 channels, and **@** marks direct messages. Names and messages support offline color Unicode emoji.
 
 ## Troubleshooting: MeshCore freezes or cannot use the LoRa CAP

@@ -18,6 +18,12 @@ TAB_TITLES = ('Chats','Join','Nodes','Map','Settings')
 UNCONFIRMED = '#52616d'
 
 
+def draw_globe(draw,x,y,size,color):
+    draw.ellipse((x,y,x+size,y+size),outline=color)
+    draw.ellipse((x+size//3,y,x+size-size//3,y+size),outline=color)
+    draw.line((x,y+size//2,x+size,y+size//2),fill=color)
+
+
 class UI:
     def __init__(self, store, backend=None):
         self.store, self.backend = store, backend
@@ -525,6 +531,7 @@ class UI:
                     d.line((20,y+6,20,y+8),fill=ACCENT)
                     d.rounded_rectangle((14,y+7,22,y+14),1,outline=ACCENT,width=1)
                     d.line((18,y+9,18,y+11),fill=ACCENT)
+                elif typ=='public':draw_globe(d,13,y+3,12,ACCENT)
                 else:text(13,y+1,'@' if typ=='dm' else '#',ACCENT,14,True)
                 left=30
                 display=chat['name'].lstrip('#') if typ=='hashtag' else chat['name']
@@ -659,7 +666,8 @@ class UI:
                 d.arc((10,24,16,32),180,360,fill=ACCENT,width=1)
                 d.rounded_rectangle((8,29,18,35),1,outline=ACCENT)
                 d.line((13,31,13,33),fill=ACCENT);left=23
-            title=('# '+self.chat['name']) if typ=='public' else self.chat['name']
+            elif typ=='public':draw_globe(d,9,25,10,ACCENT);left=24
+            title=self.chat['name']
             text(left,23,title,ACCENT,11,True,width=(195 if scope else 300)-(left-9))
             if scope:text(207,24,'Scope: '+scope,MUTED,9,width=106)
             history = self.store.history(self.chat['id'])

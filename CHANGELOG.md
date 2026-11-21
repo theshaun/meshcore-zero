@@ -2,6 +2,8 @@
 
 ## 0.1.27 — 2026-11-21
 
+- Publish to GitHub and the Cardputer app store (submission #629); verify both live registry versions and package SHA-256 checksums. Pass 126 local/ARM64 and GitHub CI tests; install/open through APPLaunch and preserve existing identity, channels and history.
+
 - Release the driver’s transmit-buffer ownership before restoring receive mode after a rejected or failed send, including hourly budget exhaustion. Add a regression test ensuring SetTx is skipped and RX delivery remains enabled.
 
 ## 0.1.26 — 2026-11-21

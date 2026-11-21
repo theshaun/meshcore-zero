@@ -25,6 +25,7 @@ def radio_config(store, region=None):
 class Store:
     def __init__(self, directory):
         directory = Path(directory)
+        self.directory = directory
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(directory, 0o700)
         self.db = sqlite3.connect(directory / "meshcore.sqlite")

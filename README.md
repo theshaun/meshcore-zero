@@ -253,7 +253,7 @@ only a position you enter manually is saved in the app database.
 confirmation before sharing your precise GPS position. When enabled, fresh fixes
 are included in startup/manual adverts, and a location advert is sent after a
 fresh fix becomes available and at most every 15 minutes thereafter, subject to
-radio cooldowns. A fix must be no more than 15 seconds old. No-fix/stale GPS and
+regional airtime limits. A fix must be no more than 15 seconds old. No-fix/stale GPS and
 manual fallback positions are never broadcast. Turning sharing off clears the
 advert location and cancels queued own-location adverts before transmission.
 Map use alone does not enable sharing; GPS broadcasting continues with the
@@ -335,3 +335,14 @@ and a custom frequency editor are not included.
 Independent client using [openHop Core](https://github.com/openhop-dev/openhop_core)
 and the [MeshCore protocol](https://github.com/meshcore-dev/meshcore).
 See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
+
+### Airtime and short conversations
+
+Messages no longer have a fixed cooldown. European presets allow bursts of
+short messages within a 10% rolling-hour transmit budget (360 seconds).
+Accounting uses each encoded packet’s calculated LoRa airtime, including
+adverts, acknowledgements and retries. The private local ledger survives
+restarts and is separate from identity backups. Only an exhausted budget
+blocks transmission; reception continues. Other presets have no artificial
+message cooldown; Japan retains its packet, channel-sensing and 50 ms spacing
+guards. Use the appropriate regional preset and comply with local radio rules.

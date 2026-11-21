@@ -29,10 +29,6 @@ PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2, 'SCO':3}
 DEFAULT_SCOPES = {'SCO':'sco'}
 EUROPE = {'EU','UK','CH','CZ','NL','PT','SK','SCO'}
 
-def cooldown_factor(region):
-    return 99 if region in EUROPE else 9
-
-
 def configure_protocol(engine, region):
     """Apply preset path encoding and default scope before any startup advert."""
     from openhop_core.protocol.transport_keys import get_auto_key_for

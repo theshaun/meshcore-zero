@@ -29,8 +29,11 @@ async def wait_clear(sample, receiving=lambda: False, *, duration=.005, timeout=
     raise RuntimeError('JP channel busy; transmission cancelled')
 
 class RegionalRadioMixin:
-    def __init__(self, *args, region='US', **kwargs):
+    def __init__(self, *args, region='US', airtime_budget=None, **kwargs):
         self.region=region
+        self.airtime_budget=airtime_budget
+        self._packet_airtime=0.0
+        self.airtime_error=''
         self._regional_lock=asyncio.Lock()
         self._last_regional_tx=0.0
         super().__init__(*args, **kwargs)
@@ -69,8 +72,27 @@ class RegionalRadioMixin:
         return True,delays
 
     async def send(self,data):
-        if self.region!='JP': return await super().send(data)
-        # Separate lock spans the base driver's lock and the final RX restore.
+        # Serialize the actual packet size with its eventual SetTx reservation.
         async with self._regional_lock:
+            self.airtime_error=''
+            from openhop_core.protocol.packet_utils import calculate_lora_airtime_ms
+            self._packet_airtime=calculate_lora_airtime_ms(
+                len(data),self.spreading_factor,self.bandwidth,
+                self.coding_rate,self.preamble_length)/1000
             try: return await super().send(data)
-            finally: self._last_regional_tx=time.monotonic()
+            finally:
+                if self.region=='JP': self._last_regional_tx=time.monotonic()
+                self._packet_airtime=0.0
+
+    async def _execute_transmission(self,*args,**kwargs):
+        from .regions import EUROPE
+        if self.region in EUROPE:
+            if self.airtime_budget is None:
+                raise RuntimeError('Hourly airtime accounting unavailable')
+            # Commit before SetTx, after LBT/privacy checks. An uncertain TX
+            # failure remains charged; every retry/ACK passes this same guard.
+            try:self.airtime_budget.reserve(self._packet_airtime)
+            except ValueError as exc:
+                self.airtime_error=str(exc)
+                raise
+        return await super()._execute_transmission(*args,**kwargs)

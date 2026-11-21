@@ -120,10 +120,10 @@ class MapTests(unittest.IsolatedAsyncioTestCase):
         foreign=PacketBuilder.create_advert(LocalIdentity(bytes(range(32,64))),name='Other',lat=1,lon=2)
         self.assertTrue(backend.location_packet_allowed(foreign.write_to()))
 
-    async def test_location_service_waits_for_startup_and_cooldown_then_limits_broadcasts(self):
+    async def test_location_service_waits_for_startup_then_limits_broadcasts(self):
         u=self.ui;backend=Backend(self.store);backend.engine=CompanionRadio(None,LocalIdentity(SEED));backend.engine._running=True
         backend.gps=u.gps;u.backend=backend;self.store.set('gps_broadcast','on')
-        clock=[1000];ticks=iter((1001,1100,1200,1999,2000,2001));backend.next_tx=1100
+        clock=[1000];ticks=iter((1001,1100,1200,1999,2000,2001))
         class Port:
             def read(self):return [sentence('GNGGA,123519,4807.038,N,01131.000,E,1,08,0.9,0,M,0,M,,')]
             def close(self):pass
@@ -136,7 +136,7 @@ class MapTests(unittest.IsolatedAsyncioTestCase):
             except StopIteration:u.running=False
         with patch('meshcore_zero.gps.time',SimpleNamespace(monotonic=lambda:clock[0])),patch('meshcore_zero.gps.asyncio.sleep',side_effect=tick):
             await u.gps.run(SimpleNamespace(done=lambda:clock[0]>=1001))
-        self.assertEqual(sent,[1100,2000])
+        self.assertEqual(sent,[1001,1999])
         self.assertTrue(all(call.kwargs=={'notify':False} for call in backend.announce.await_args_list))
 
     async def test_advert_metadata_survives_contact_persistence_and_only_accepts_verified_callback(self):

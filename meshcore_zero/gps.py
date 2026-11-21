@@ -133,7 +133,7 @@ class GPS:
                     if (self.serial and self.ui.store.get('gps_broadcast','off')=='on' and self.fresh()
                         and (startup_advert is None or startup_advert.done())
                         and not self.ui.launch_state and not self.ui.startup_release and self.ui.screen!='update'
-                        and now>=max(self.last_broadcast+BROADCAST_SECONDS,self.retry_at,backend.next_tx)
+                        and now>=max(self.last_broadcast+BROADCAST_SECONDS,self.retry_at)
                         and not backend.send_lock.locked()):
                         self.retry_at=now+60
                         try:await backend.announce(notify=False)

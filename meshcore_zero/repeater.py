@@ -55,9 +55,6 @@ async def request_status(backend, public_key, password):
         raise ValueError('Password limit: 15 UTF-8 bytes')
     key=bytes.fromhex(public_key)
     async with backend.send_lock:
-        import time
-        if time.monotonic()<backend.next_tx:
-            raise ValueError('Airtime cooldown · try again shortly')
         try:
             login=await backend.engine.send_login(key,password)
             password=''
@@ -74,7 +71,3 @@ async def request_status(backend, public_key, password):
             return stats,clock
         finally:
             password=''
-            # Same app-level spacing as manual announcements; physical radio
-            # guards still cover every protocol-generated packet and retry.
-            from .regions import EUROPE
-            backend.next_tx=time.monotonic()+(60 if backend.region in EUROPE else 6)

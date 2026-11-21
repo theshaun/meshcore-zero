@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.26 — 2026-11-21
+
+- Remove fixed message, advert and repeater-request cooldowns (issue #5).
+- Allow burst conversations within a persistent 10% rolling-hour European airtime budget, calculated from actual physical packet lengths and including ACKs/retries. Preserve Japan’s physical radio guards.
+- Keep the airtime ledger separate from identity backups; retain reception when the transmit budget is exhausted.
+- Pass 125 local/ARM64 tests, install through APPLaunch, and send three short #testing messages without a cooldown; verify identity, channels and existing history remain intact.
+
 ## Documentation updates — 2026-11-20
 
 - Clarify that current MeshZero defaults background operation off and releases the radio about ten seconds after exit; uninstalling is not normally required.

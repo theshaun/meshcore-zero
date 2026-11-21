@@ -134,8 +134,25 @@ The **Slovakia (SK)** profile follows the community’s
 [2-byte path-hash recommendation](https://mesh.om3kff.sk/settings.html):
 869.618 MHz, BW62.5, SF7, CR4/5, and 2-byte path hashes. Checked 2026-11-19.
 The profile uses this app’s conservative 14 dBm European power default and
-European airtime pacing. The community frequency page does not specify TX power.
+a 10% rolling-hour airtime budget. The community frequency page does not specify TX power.
 Select it in Settings → Region and restart to apply. Existing identities,
 channels, radio profiles and per-region coding-rate overrides are preserved.
 This configures the radio and path width; it does not join community channels
 or change their flood scopes. Slovakia over-the-air testing remains pending.
+
+## Burst-friendly airtime accounting
+
+v0.1.26 removes per-message and per-announcement cooldowns. European presets
+use a shared 360-second rolling-hour budget for their 869.4–869.65 MHz band.
+The ledger counts calculated airtime of actual encoded physical packets,
+including protocol ACKs/retries, just before SetTx. Failed/uncertain TX attempts
+remain charged conservatively. Entries expire one hour after the reserved
+packet end. Restarting, switching presets, or restoring an identity backup
+does not clear the separate local airtime.sqlite ledger. Clock rollback fails
+closed until the clock catches up; a clock correction forward follows the
+system clock. This tracks this app’s transmissions only, not other radio apps.
+
+The 10% UK band alternative is documented in [Ofcom IR 2030,
+IR2030/1/19](https://www.ofcom.org.uk/siteassets/resources/documents/spectrum/interface-requirements/ir-2030.pdf),
+checked 2026-11-21. These host-side guards are not equipment certification.
+Power defaults remain unchanged. Japan’s existing physical guards are retained.

@@ -14,7 +14,7 @@ from collections import OrderedDict
 
 from .store import radio_config
 from .cap import CapPower
-from .regions import configure_protocol, EUROPE
+from .regions import configure_protocol
 from .regional_radio import RegionalRadioMixin
 
 log = logging.getLogger(__name__)
@@ -41,7 +41,6 @@ class Backend:
         self.channels = {}
         self.lock = None
         self.send_lock = asyncio.Lock()
-        self.next_tx = 0
         self.region = store.get('region', 'US')
         self.config = radio_config(store, self.region)
         self._outgoing_mid = None
@@ -64,7 +63,9 @@ class Backend:
             from .gps import LocationPrivacyMixin
             class CapRadio(LocationPrivacyMixin, RegionalRadioMixin, SX1262Radio):
                 pass
-            self.radio = CapRadio(region=region,bus_id=0, cs_id=1, cs_pin=-1,
+            from .airtime import AirtimeBudget
+            budget = AirtimeBudget(self.store.directory / 'airtime.sqlite')
+            self.radio = CapRadio(region=region,airtime_budget=budget,bus_id=0, cs_id=1, cs_pin=-1,
                 gpio_chip=0, use_gpiod_backend=True, reset_pin=26,
                 busy_pin=22, irq_pin=23, txen_pin=-1,
                 preamble_length=16, sync_word=0x12,
@@ -240,8 +241,6 @@ class Backend:
         async with self.send_lock:
             if not self.store.db.execute('SELECT 1 FROM chats WHERE id=?',(chat['id'],)).fetchone():
                 raise ValueError('Conversation has been left')
-            if time.monotonic() < self.next_tx:
-                raise ValueError('Airtime cooldown · try again shortly')
             mid = self.store.add(chat['id'], self.engine.prefs.node_name, text, status='sending')
             self._outgoing_mid=mid if chat['kind']=='channel' else None
             self._outgoing_started=time.monotonic()
@@ -257,12 +256,9 @@ class Backend:
                     result = await self.engine.send_text_message(bytes.fromhex(chat['id']), text, wait_for_ack=True)
                     state = 'delivered' if result.success else 'unconfirmed'
                 self.store.status(mid, state)
-                # Conservative per-transmission 1% airtime pacing in EU, 10% US.
-                from openhop_core.protocol.packet_utils import calculate_lora_airtime_ms
-                cfg = self.config
-                airtime = calculate_lora_airtime_ms(200, cfg['spreading_factor'], cfg['bandwidth'], cfg['coding_rate'], 16)
-                self.next_tx = time.monotonic() + (0.05 if self.region=='JP' else airtime / 1000 * (99 if self.region in EUROPE else 9))
                 if state not in ('sent','delivered'):
+                    error=getattr(self.radio,'airtime_error','')
+                    if error:raise ValueError(error)
                     self.notify(state.capitalize())
             except BaseException:
                 self.store.status(mid, 'failed')
@@ -293,12 +289,11 @@ class Backend:
         if not self.engine:
             raise ValueError('Radio offline')
         async with self.send_lock:
-            if time.monotonic() < self.next_tx:
-                raise ValueError('Airtime cooldown · try again shortly')
             self.update_location_policy()
             ok = await self.engine.advertise(flood=True)
             if ok and self.gps and getattr(self.engine.prefs,'advert_loc_policy',0)==1:self.gps.last_broadcast=time.monotonic()
-            self.next_tx = time.monotonic() + (60 if self.region in EUROPE else 6)
+            if not ok and getattr(self.radio,'airtime_error',''):
+                raise ValueError(self.radio.airtime_error)
             if notify:self.notify('Announcement sent' if ok else 'Announcement failed')
             return ok
 

@@ -8,7 +8,7 @@ Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 | --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
 | USA | 910.525 | 62.5 | 7 | 4/5 | 20 | 1 | Available |
 | Europe (legacy) | 869.618 | 62.5 | 8 | 4/5 | 14 | 1 | Available |
-| Japan | 920.800 | 125 | 12 | 4/8 | 13 | 1 | Available |
+| Japan (experimental) | 920.800 | 125 | 12 | 4/8 | 13 | 1 | Available |
 | Canada | 910.525 | 62.5 | 7 | 4/5 | 20 | 3 | Available |
 | Australia (Narrow) | 916.575 | 62.5 | 7 | 4/7 | 20 | 2 | Available |
 | New Zealand (Narrow) | 917.375 | 62.5 | 7 | 4/5 | 20 | 2 | Available |
@@ -42,10 +42,10 @@ an equipment approval. Match your local mesh's radio settings and antenna band.
 The API entries follow the
 [official MeshCore preset API](https://api.meshcore.nz/api/v1/config), checked
 2026-11-23. Power defaults are conservative application choices; the API does not
-specify them. The app deliberately excludes 433 MHz and presets outside the
-CAP's published 868–923 MHz range. US peer messaging has been tested; other
-profiles need local field testing. No automatic frequency changes or online
-preset downloads take place.
+specify them. The app shows 433 MHz and other presets outside the
+CAP's published 868–923 MHz range as unavailable for selection. US peer messaging has been tested; other
+profiles need local field testing. Online preset downloads update the catalog only; automatic
+frequency changes never take place.
 
 ## Scotland / ScotMesh
 

@@ -33,7 +33,7 @@ class ChannelUI:
             else:u.screen='inbox';u.leave_target=self.chat.copy();u.leave_choice=1
     def draw(self):
         from .ui import BG,TEXT,MUTED,ACCENT,SELECT,PANEL
-        from .regions import DEFAULT_SCOPES
+        from .regions import active_scope
         u=self.ui;img=Image.new('RGB',(320,170),BG);d=ImageDraw.Draw(img);u.draw_tabs(img)
         def text(x,y,s,color=TEXT,size=11,bold=False):u.text.draw(img,(x,y),s,color,size,bold,width=300)
         text(10,27,self.chat['name'],size=14,bold=True)
@@ -49,7 +49,7 @@ class ChannelUI:
             d.rounded_rectangle((8,99,311,125),4,fill=SELECT);text(15,105,self.input+'|',ACCENT,12)
             hint='Enter save   Backspace edit   Esc cancel'
         else:
-            scope=self.row()['scope'];region=u.backend.region if u.backend and u.backend.engine else u.store.get('region','US');default=DEFAULT_SCOPES.get(region,'unscoped')
+            scope=self.row()['scope'];default=active_scope(u.store,u.backend) or 'unscoped'
             labels=['Unmute notifications' if u.store.is_muted(self.chat['id']) else 'Mute notifications','Scope: '+(scope or 'Default · '+default),'Clear message history','Leave channel']
             for i,label in enumerate(labels):
                 y=51+i*24;d.rounded_rectangle((5,y,314,y+21),4,fill=SELECT if i==self.selected else PANEL);text(12,y+3,label)

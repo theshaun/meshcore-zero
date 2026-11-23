@@ -100,8 +100,8 @@ class Store:
         with self.db:self.db.execute("UPDATE chats SET muted=? WHERE id=? AND kind='channel'",(int(bool(value)),chat))
 
     def set_scope(self,chat,value):
-        value=value.strip().lower().lstrip('#')
-        if value and not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,29}',value):raise ValueError('Use 1–30 letters, numbers, _ or -')
+        from .regions import normalize_scope
+        value=normalize_scope(value)
         with self.db:self.db.execute("UPDATE chats SET scope=? WHERE id=? AND kind='channel'",(value or None,chat))
 
     def clear_history(self,chat):

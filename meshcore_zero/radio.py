@@ -84,7 +84,7 @@ class Backend:
             self.engine = CompanionRadio(self.radio, identity,
                 node_name=self.store.get('name', 'Zero-' + identity.get_public_key().hex()[:4]),
                 radio_config=cfg)
-            configure_protocol(self.engine,region)
+            configure_protocol(self.engine,region,self.store)
             self.engine.contacts.load_from_dicts([json.loads(r[0]) for r in self.store.db.execute('SELECT data FROM nodes')])
             self.engine.set_autoadd_config(0x0f)
             self.sync_channels()

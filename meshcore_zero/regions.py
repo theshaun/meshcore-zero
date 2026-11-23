@@ -29,9 +29,37 @@ PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2, 'SCO':3}
 DEFAULT_SCOPES = {'SCO':'sco'}
 EUROPE = {'EU','UK','CH','CZ','NL','PT','SK','SCO'}
 
-def configure_protocol(engine, region):
-    """Apply preset path encoding and default scope before any startup advert."""
+def normalize_scope(value):
+    import re
+    value=value.strip().lower().lstrip('#')
+    if value and not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,29}',value):
+        raise ValueError('Use 1–30 letters, numbers, _ or -')
+    return value
+
+
+def protocol_config(store, region=None):
+    """Per-profile overrides; missing scope inherits preset, empty is unscoped."""
+    region=region or store.get('region','US')
+    if region not in PRESETS:raise ValueError('Unknown radio region')
+    scope=store.get('scope_'+region,DEFAULT_SCOPES.get(region,'')) if store else DEFAULT_SCOPES.get(region,'')
+    scope=normalize_scope(scope)
+    size=int(store.get('path_bytes_'+region,PATH_BYTES.get(region,1))) if store else PATH_BYTES.get(region,1)
+    if size not in (1,2,3):raise ValueError('Path hash must be 1, 2 or 3 bytes')
+    return scope,size
+
+
+def active_scope(store,backend=None):
+    """Display the live engine scope while saved changes await a restart."""
+    engine=getattr(backend,'engine',None)
+    if engine and callable(getattr(engine,'get_default_flood_scope',None)):
+        current=engine.get_default_flood_scope()
+        return current[0] if current else ''
+    return protocol_config(store)[0]
+
+
+def configure_protocol(engine, region, store=None):
+    """Apply path encoding and default scope before any startup advert."""
     from openhop_core.protocol.transport_keys import get_auto_key_for
-    engine.set_path_hash_mode(PATH_BYTES.get(region,1)-1)
-    scope=DEFAULT_SCOPES.get(region)
+    scope,size=protocol_config(store,region)
+    engine.set_path_hash_mode(size-1)
     engine.set_default_flood_scope(scope,get_auto_key_for(scope) if scope else None)

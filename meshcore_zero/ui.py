@@ -64,6 +64,8 @@ class UI:
         self.identity_ui = IdentityUI(self)
         from .channel_ui import ChannelUI
         self.channel_ui = ChannelUI(self)
+        from .protocol_ui import ProtocolUI
+        self.protocol_ui = ProtocolUI(self)
         from .gps import GPS
         self.gps = GPS(self)
         from .map_ui import MapUI
@@ -142,7 +144,7 @@ class UI:
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
-            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.identity_ui.render_key(),self.channel_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),self.join_ui.render_key(),
+            self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.identity_ui.render_key(),self.channel_ui.render_key(),self.protocol_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),self.join_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
 
@@ -274,6 +276,9 @@ class UI:
         if self.screen=='backup':
             await self.backup_ui.key(key)
             return
+        if self.screen=='protocol':
+            await self.protocol_ui.key(key)
+            return
         if self.screen=='channel_options':
             await self.channel_ui.key(key)
             return
@@ -364,7 +369,7 @@ class UI:
                 self.running = False
             return
         if self.screen in ('inbox', 'nodes', 'settings'):
-            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 9
+            count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 10
             if key=='backspace' and self.screen=='inbox' and count:
                 chat=self.store.chats()[min(self.selected,count-1)]
                 if chat['kind']=='channel':self.channel_ui.open(chat)
@@ -411,6 +416,8 @@ class UI:
                         self.backup_ui.open()
                     elif self.selected == 8:
                         self.map_ui.open_sharing()
+                    elif self.selected == 9:
+                        self.protocol_ui.open()
                     elif self.backend and self.backend.engine:
                         try:
                             await self.backend.announce()
@@ -497,6 +504,7 @@ class UI:
         if self.screen=='join':return self.join_ui.draw()
         if self.screen in ('map','map_position','map_details','gps_sharing'):return self.map_ui.draw()
         if self.screen=='backup':return self.backup_ui.draw()
+        if self.screen=='protocol':return self.protocol_ui.draw()
         if self.screen=='channel_options':return self.channel_ui.draw()
         if self.screen=='identity':return self.identity_ui.draw()
         if self.leave_target:return self.draw_leave()
@@ -608,14 +616,17 @@ class UI:
                 y=23+(i-start)*32
                 d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if i==self.selected else PANEL)
                 label=NAMES[region]+(' · experimental' if region=='JP' else '')
-                if region=='SCO':label+=' · sco / 3B'
+                if region=='SCO':
+                    from .regions import protocol_config
+                    scope,size=protocol_config(self.store,region)
+                    label+=f' · {scope or "unscoped"} / {size}B'
                 text(12,y+1,label,bold=True,width=292)
                 detail=f"{cfg['frequency']/1e6:.3f} MHz  SF{cfg['spreading_factor']}  BW{cfg['bandwidth']/1000:g}  CR4/{cfg['coding_rate']}"
                 text(12,y+18,detail,MUTED,9,width=292)
             hint='↑↓ select   Enter save   Restart to apply'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore', 'GPS broadcasting: '+self.store.get('gps_broadcast','off').title()]
+            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore', 'GPS broadcasting: '+self.store.get('gps_broadcast','off').title(), 'Scope / path hash']
             start=max(0,self.selected-4)
             for i in range(start,min(len(labels),start+5)):
                 label=labels[i]
@@ -656,10 +667,9 @@ class UI:
                     'Enter install   Esc back' if self.update_state=='password' else
                     'Please wait…' if self.update_state=='busy' else 'Enter check again   Esc back')
         elif self.screen == 'chat':
-            from .regions import DEFAULT_SCOPES
+            from .regions import active_scope
             row=self.store.db.execute('SELECT scope FROM chats WHERE id=?',(self.chat['id'],)).fetchone()
-            region=self.backend.region if self.backend and self.backend.engine else self.store.get('region','US')
-            scope=(row[0] or DEFAULT_SCOPES.get(region)) if row and self.chat['kind']=='channel' else None
+            scope=(row[0] or active_scope(self.store,self.backend)) if row and self.chat['kind']=='channel' else None
             from .channels import channel_type
             typ=channel_type(self.chat);left=9
             if typ=='private':

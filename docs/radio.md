@@ -156,3 +156,20 @@ The 10% UK band alternative is documented in [Ofcom IR 2030,
 IR2030/1/19](https://www.ofcom.org.uk/siteassets/resources/documents/spectrum/interface-requirements/ir-2030.pdf),
 checked 2026-11-21. These host-side guards are not equipment certification.
 Power defaults remain unchanged. Japan’s existing physical guards are retained.
+
+## Manual region scope and path size
+
+Settings → Scope / path hash overrides the selected profile’s default flood
+scope and outgoing path hash size (1, 2 or 3 bytes). Values are stored per
+profile and applied before the startup advert on the next launch. Empty scope
+is an explicit unscoped override, including on the Scotland preset; Reset to
+region preset deletes both overrides and restores defaults such as sco / 3B.
+Per-channel scope overrides take precedence for channel messages only.
+Pending changes do not relabel the running radio’s scope in channel menus or
+chat headers. Full encrypted backup/restore preserves and validates overrides.
+
+The firmware [packet format](https://github.com/meshcore-dev/MeshCore/blob/main/docs/packet_format.md)
+supports 1-, 2- and 3-byte paths; 4 bytes is reserved. The path size setting
+controls this node’s outgoing encoding, not which hash sizes repeaters forward.
+No regional RF defaults or joined-channel secrets change when editing these
+protocol settings. Scope/path wire-format tests run without transmitting.

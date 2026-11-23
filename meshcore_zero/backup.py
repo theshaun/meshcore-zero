@@ -79,6 +79,8 @@ def validate(data):
     from .regions import PRESETS
     if settings.get('region','US') not in PRESETS:fail()
     for k,v in settings.items():
+        if k.startswith('scope_') and (k[6:] not in PRESETS or v and not re.fullmatch('[a-z0-9][a-z0-9_-]{0,29}',v)):fail()
+        if k.startswith('path_bytes_') and (k[11:] not in PRESETS or v not in ('1','2','3')):fail()
         if k.startswith('coding_rate_') and v not in ('5','6','7','8'):fail()
     if sum(r['kind']=='channel' for r in data['chats'])>32:fail()
     ids=set()

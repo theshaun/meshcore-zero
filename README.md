@@ -166,6 +166,22 @@ Australia, New Zealand, EU/UK, Switzerland, Czechia, Netherlands, Portugal,
 Thailand, Vietnam, Slovakia, and Scotland (ScotMesh). Restart to apply; saved coding-rate overrides and your
 existing US/EU configuration are preserved.
 
+**Settings → Scope / path hash** lets you override the selected preset’s region
+scope and choose **1, 2 or 3 bytes** for outgoing path hashes. Enter the scope
+name used by your local mesh (for example `sco` or `eng-ne`); a leading `#` is
+optional. Leave the field blank for unscoped floods. Overrides are saved per
+regional preset; restart the app to apply them before the startup advert.
+**Reset to region preset** restores that profile’s scope and path size without
+changing its frequency or coding rate. Encrypted full backups include these
+settings. Existing installations keep their preset defaults until changed.
+
+For a single channel, highlight it in Chats, press **Backspace**, and select
+**Scope**. A blank channel override inherits the active region-wide scope.
+The channel menu and chat header show the running radio’s scope while saved
+region-wide changes await a restart. Scopes control flood routing, not channel
+encryption or radio frequency. Match your local mesh; older repeaters may not
+forward multi-byte paths (see the [MeshCore firmware FAQ](https://github.com/meshcore-dev/MeshCore/blob/main/docs/faq.md)).
+
 Japan uses 920.800 MHz / SF12 / BW125 / CR4/8 at 13 dBm, with energy-based
 listen-before-talk and per-packet airtime limits. Text is limited to 16 UTF-8
 bytes including a channel’s sender prefix. This is experimental and does not

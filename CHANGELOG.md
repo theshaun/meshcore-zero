@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.30 — 2026-11-23
+
+- Add F/X as Up/Down shortcuts in the Chats conversation list, alongside Fn+F/Fn+X arrow navigation. Keep literal F/X entry in messages and forms, and update the inbox hint and README controls.
+
 ## 0.1.29 — 2026-11-23
 
 - Publish to GitHub and the app store (submission #750); verify both live registry versions/checksums. Pass 138 local/ARM64 tests and GitHub CI; confirm the installed picker through APPLaunch and the physical LCD, and verify a live 27-preset API cache without changing the saved US radio selection or private device data.

@@ -210,6 +210,10 @@ See [radio profiles and CAP compatibility](docs/radio.md) for exact settings,
 Japan limitations, hardware detection, and field-test coverage. A hashtag channel
 changes its shared key, not the radio frequency.
 
+In the **Chats conversation list**, **F** moves up and **X** moves down.
+**Fn+F / Fn+X** (the Up/Down arrows) continue to work. These plain-letter
+shortcuts apply only to the list; F and X type normally in messages and forms.
+
 ## Message indicators
 
 Small green circles mean a matching radio echo or DM acknowledgement returned.

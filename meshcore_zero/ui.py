@@ -383,6 +383,8 @@ class UI:
             else:
                 self.running = False
             return
+        if self.screen=='inbox' and key in ('f','F','x','X'):
+            key='up' if key.lower()=='f' else 'down'
         if self.screen in ('inbox', 'nodes', 'settings'):
             count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 10
             if key=='backspace' and self.screen=='inbox' and count:
@@ -537,6 +539,7 @@ class UI:
         self.draw_tabs(img)
         hint = 'Tab menu    ↑↓ select    Enter open'
         if self.screen == 'inbox':
+            hint='Tab menu  F/X ↑↓ select  Enter open'
             chats = self.store.chats()
             if not chats:text(10,55,'No conversations · Tab to Join',MUTED,12)
             self.selected = min(self.selected, max(0,len(chats)-1))
@@ -567,7 +570,7 @@ class UI:
                 if chat['status'] in ('failed','unconfirmed','sending','interrupted'):
                     preview = chat['status'].capitalize() + ' · ' + preview
                 text(left,y+17,preview,MUTED,10,width=302-left)
-            if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  ↑↓ select  Enter open  Backspace options'
+            if chats and chats[self.selected]['kind']=='channel':hint='Tab menu  F/X ↑↓  Enter open  Bksp options'
         elif self.screen == 'name':
             text(10,27,'Your node name',size=14,bold=True)
             text(10,49,'Shown to other people on the mesh.',MUTED,10)

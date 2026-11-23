@@ -91,12 +91,27 @@ class StoreTests(unittest.TestCase):
     def test_cardputer_symbol_layer_and_navigation(self):
         keyboard=Keyboard.__new__(Keyboard)
         keyboard.shift=set()
-        for code,char in ((39,'#'),(71,'-'),(70,'_'),(91,'.'),(28,'enter'),(15,'tab'),(103,'up')):
+        for code,char in ((39,'#'),(71,'-'),(70,'_'),(91,'.'),(28,'enter'),(15,'tab'),(103,'up'),(108,'down'),(33,'f'),(45,'x')):
             self.assertEqual(keyboard.translate(1,code,1),char)
         keyboard.translate(1,42,1)
         self.assertEqual(keyboard.translate(1,30,1),'A')
         keyboard.translate(1,42,0)
         self.assertEqual(keyboard.translate(1,30,1),'a')
+
+    def test_inbox_letter_navigation_and_fn_arrows_leave_text_entry_unchanged(self):
+        async def scenario():
+            self.store.join('#testing');self.store.dm('a'*64,'Fixture')
+            ui=UI(self.store);keyboard=Keyboard.__new__(Keyboard);keyboard.shift=set()
+            for code,expected in ((45,1),(108,2),(45,2),(33,1),(103,0),(33,0)):
+                await ui.key(keyboard.translate(1,code,1));self.assertEqual(ui.selected,expected)
+            await ui.key('X');self.assertEqual(ui.selected,1)
+            await ui.key('F');self.assertEqual(ui.selected,0)
+            await ui.key('enter')
+            for char in 'fxFX':await ui.key(char)
+            self.assertEqual(ui.draft,'fxFX')
+            await ui.key('escape');ui.channel_ui.open(next(c for c in self.store.chats() if c['id']=='#testing'))
+            await ui.key('x');self.assertEqual(ui.channel_ui.selected,0)
+        asyncio.run(scenario())
 
     def test_interrupted_send_is_not_left_sending(self):
         self.store.add('public','You','pending',status='sending')

@@ -2,6 +2,8 @@
 
 ## 0.1.29 — 2026-11-23
 
+- Publish to GitHub and the app store (submission #750); verify both live registry versions/checksums. Pass 138 local/ARM64 tests and GitHub CI; confirm the installed picker through APPLaunch and the physical LCD, and verify a live 27-preset API cache without changing the saved US radio selection or private device data.
+
 - Add the full MeshCore community preset API catalog, including Hungary (869.618 / SF7 / BW62.5 / CR4/5 / 2-byte paths), with a bundled offline snapshot and validated persistent cache (issue #8).
 - Refresh stale catalogs quietly at startup; add R to refresh immediately in Region. Bound fetches and clean up the child at exit; keep last-good presets offline.
 - Pin selected radio/path defaults until explicit reselection, preserve legacy profiles and user overrides, and include downloaded profiles in encrypted backups. Mark presets outside the CAPs’ rated band unavailable.

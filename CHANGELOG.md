@@ -2,6 +2,8 @@
 
 ## 0.1.28 — 2026-11-23
 
+- Publish to GitHub and the Cardputer app store (submission #733); verify both live registry versions/checksums. Pass 130 local/ARM64 and GitHub CI tests, confirm the installed page via APPLaunch and physical LCD, and preserve device identity, channels and history.
+
 - Add Settings → Scope / path hash with per-profile region scope, explicit unscoped mode, 1/2/3-byte outgoing path hashes and reset to preset (issue #7). Apply before startup adverts after restarting.
 - Preserve per-channel overrides, show the active radio’s scope while saved changes await restart, and include validated overrides in encrypted backups.
 - Document settings controls, defaults, scope inheritance and firmware path-size compatibility.

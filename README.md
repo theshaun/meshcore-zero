@@ -161,10 +161,29 @@ Both the current **Cap LoRa-1262** and the legacy **Cap LoRa868** are detected
 automatically. Settings shows the detected model. The legacy CAP does not need
 the newer board’s antenna-switch expander.
 
-**Settings → Region** offers USA, Europe (legacy), Japan (experimental), Canada,
-Australia, New Zealand, EU/UK, Switzerland, Czechia, Netherlands, Portugal,
-Thailand, Vietnam, Slovakia, and Scotland (ScotMesh). Restart to apply; saved coding-rate overrides and your
-existing US/EU configuration are preserved.
+**Settings → Region** includes the full MeshCore community preset catalog,
+including **Hungary**, Brazil, Costa Rica, Australian variants, Netherlands
+(Limburg), New Zealand (Gisborne), USA (Southern California), and legacy presets.
+Hungary uses **869.618 MHz / SF7 / BW62.5 / CR4/5 / 2-byte paths**.
+Japan (experimental), Scotland / ScotMesh, and the legacy EU profile remain
+available alongside the API list.
+
+Presets refresh quietly from the [MeshCore configuration API](https://api.meshcore.nz/api/v1/config)
+at startup when the cache is over 24 hours old. Press **R** in the Region
+picker to refresh immediately. A validated local cache and bundled snapshot
+keep the list available offline; a failed refresh keeps the last good list.
+No account or device identity is sent to that API.
+
+Choose a preset with Up/Down and Enter, then restart to apply it. Refreshing
+only updates the list: it never retunes your radio. The selected profile is
+saved as a snapshot, including its path-size default, and remains unchanged
+until you select it again. Existing identities, channels, legacy settings,
+and per-profile coding-rate/scope/path overrides are preserved. Full encrypted
+backups include downloaded and selected profiles for offline restoration.
+
+The catalog shows presets outside the CAPs’ documented **868–923 MHz** range
+as unavailable and refuses to select them; this includes 433 MHz presets and
+some higher-frequency regional variants. Match your local mesh and hardware.
 
 **Settings → Scope / path hash** lets you override the selected preset’s region
 scope and choose **1, 2 or 3 bytes** for outgoing path hashes. Enter the scope

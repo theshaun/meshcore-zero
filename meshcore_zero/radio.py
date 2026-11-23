@@ -93,7 +93,8 @@ class Backend:
             self.engine.on_advert_received(self.advert)
             self.watch_echoes()
             await self.engine.start()
-            self.state = region + ' · ' + self.power.model
+            from .preset_catalog import selected_profile
+            self.state = selected_profile(self.store,region)['title'] + ' · ' + self.power.model
             log.info('Radio active: %.3f MHz, %.1f kHz, SF%d, CR4/%d, %d dBm',
                 cfg['frequency']/1e6, cfg['bandwidth']/1e3,
                 cfg['spreading_factor'], cfg['coding_rate'], cfg['tx_power'])

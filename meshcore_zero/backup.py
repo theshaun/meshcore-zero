@@ -76,11 +76,24 @@ def validate(data):
     if len(settings)!=len(data['settings']) or any(not isinstance(k,str) or not isinstance(v,str) for k,v in settings.items()):fail()
     if settings.get('identity'):stored_key(settings['identity'])
     if settings.get('identity_backup'):stored_key(settings['identity_backup'])
+    from .preset_catalog import catalog,validate_entries,validate_entry,supported,CACHE_KEY,PROFILE_PREFIX
+    try:
+        if settings.get(CACHE_KEY):validate_entries(json.loads(settings[CACHE_KEY]))
+        for key,value in settings.items():
+            if key.startswith(PROFILE_PREFIX):
+                row=validate_entry(json.loads(value))
+                if key!=PROFILE_PREFIX+row['id']:fail()
+        profiles=catalog(settings=settings)
+    except (ValueError,KeyError,TypeError):fail()
+    current=settings.get('region','US')
+    if current not in profiles:fail()
     from .regions import PRESETS
-    if settings.get('region','US') not in PRESETS:fail()
+    if current not in PRESETS and PROFILE_PREFIX+current not in settings:fail()
+    active=json.loads(settings[PROFILE_PREFIX+current]) if PROFILE_PREFIX+current in settings else profiles[current]
+    if not supported(active):fail()
     for k,v in settings.items():
-        if k.startswith('scope_') and (k[6:] not in PRESETS or v and not re.fullmatch('[a-z0-9][a-z0-9_-]{0,29}',v)):fail()
-        if k.startswith('path_bytes_') and (k[11:] not in PRESETS or v not in ('1','2','3')):fail()
+        if k.startswith('scope_') and (k[6:] not in profiles or v and not re.fullmatch('[a-z0-9][a-z0-9_-]{0,29}',v)):fail()
+        if k.startswith('path_bytes_') and (k[11:] not in profiles or v not in ('1','2','3')):fail()
         if k.startswith('coding_rate_') and v not in ('5','6','7','8'):fail()
     if sum(r['kind']=='channel' for r in data['chats'])>32:fail()
     ids=set()

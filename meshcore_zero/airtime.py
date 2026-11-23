@@ -28,7 +28,7 @@ class AirtimeBudget:
     def _connect(self):
         return sqlite3.connect(self.path, isolation_level=None)
 
-    def reserve(self, seconds):
+    def reserve(self, seconds, *, limit=360):
         if not math.isfinite(seconds) or seconds <= 0:
             raise ValueError('Invalid packet airtime')
         db = self._connect()
@@ -41,7 +41,7 @@ class AirtimeBudget:
                 raise ValueError('Radio clock changed · check system time')
             db.execute('DELETE FROM tx WHERE end<=?', (now-self.WINDOW,))
             used = db.execute('SELECT COALESCE(SUM(seconds),0) FROM tx').fetchone()[0]
-            if used + seconds > self.LIMIT + 1e-9:
+            if used + seconds > min(limit,self.LIMIT) + 1e-9:
                 raise ValueError('Hourly airtime limit reached · receiving only')
             db.execute('INSERT INTO tx VALUES (?,?)', (now+seconds, seconds))
             db.execute('UPDATE clock SET high=? WHERE id=1', (now,))

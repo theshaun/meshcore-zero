@@ -30,6 +30,12 @@ class BudgetTests(unittest.TestCase):
         self.now+=354
         reopened.reserve(354)
 
+    def test_conservative_limit_shares_the_persistent_airtime_ledger(self):
+        self.budget.reserve(3.5,limit=3.6)
+        with self.assertRaisesRegex(ValueError,'Hourly'):self.budget.reserve(.2,limit=3.6)
+        self.budget.reserve(.1,limit=3.6)
+        with self.assertRaises(ValueError):self.budget.reserve(.001,limit=3.6)
+
     def test_failed_reservations_and_clock_rollback_cannot_reset_usage(self):
         self.budget.reserve(359)
         for bad in (0,-1,float('nan'),float('inf'),2):
@@ -80,6 +86,10 @@ class PhysicalTests(unittest.IsolatedAsyncioTestCase):
             us=Radio(region='US',airtime_budget=budget,**PRESETS['US'])
             await us.send(b'x'*200)
             self.assertEqual(len(us.sent),1)
+            budget.reserve(1)
+            future=Radio(region='MC_FUTURE',airtime_budget=budget,**PRESETS['HU'])
+            with self.assertRaisesRegex(ValueError,'Hourly'):await future.send(b'x'*200)
+            self.assertEqual(future.sent,[])
 
     async def test_exhausted_budget_releases_rx_buffer_after_rejection(self):
         with tempfile.TemporaryDirectory() as tmp:

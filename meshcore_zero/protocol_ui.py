@@ -38,7 +38,9 @@ class ProtocolUI:
         u=self.ui;img=Image.new('RGB',(320,170),BG);d=ImageDraw.Draw(img);u.draw_tabs(img)
         def text(x,y,s,color=TEXT,size=11,bold=False):u.text.draw(img,(x,y),s,color,size,bold,width=300)
         text(10,27,'Scope / path hash',size=14,bold=True)
-        text(10,49,self.region+' · restart app to apply',MUTED,10)
+        from .preset_catalog import selected_profile
+        title=selected_profile(u.store,self.region)['title']
+        text(10,49,title+' · restart app to apply',MUTED,10)
         if self.state=='scope':
             text(10,73,'Region scope · blank = unscoped',MUTED,11)
             d.rounded_rectangle((8,96,311,124),4,fill=SELECT)

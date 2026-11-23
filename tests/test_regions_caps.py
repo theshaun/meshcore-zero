@@ -51,17 +51,22 @@ class RegionTests(unittest.TestCase):
                 s.db.close()
         asyncio.run(scenario())
 
-    def test_all_presets_are_in_cap_band_and_jp_is_bounded(self):
+    def test_available_presets_match_cap_band_and_invalid_region_is_rejected(self):
+        from meshcore_zero.preset_catalog import catalog,supported
         with tempfile.TemporaryDirectory() as tmp:
             s=Store(tmp)
-            for region in PRESETS:
-                cfg=radio_config(s,region)
-                self.assertTrue(868000000<=cfg['frequency']<=923000000)
-                self.assertIn(cfg['coding_rate'],(5,6,7,8))
-            self.assertEqual(PATH_BYTES['CA'],3);self.assertEqual(PATH_BYTES['AU'],2)
-            s.set('region','INVALID')
-            with self.assertRaises(ValueError): radio_config(s)
-            s.db.close()
+            try:
+                for region,entry in catalog(s).items():
+                    if supported(entry):
+                        cfg=radio_config(s,region)
+                        self.assertTrue(868000000<=cfg['frequency']<=923000000)
+                        self.assertIn(cfg['coding_rate'],(5,6,7,8))
+                    else:
+                        with self.assertRaisesRegex(ValueError,'different radio CAP'):radio_config(s,region)
+                self.assertEqual(PATH_BYTES['CA'],3);self.assertEqual(PATH_BYTES['AU'],2)
+                s.set('region','INVALID')
+                with self.assertRaises(ValueError):radio_config(s)
+            finally:s.db.close()
 
 class CapTests(unittest.TestCase):
     def exercise(self, mode):

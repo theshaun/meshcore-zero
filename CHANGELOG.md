@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.29 — 2026-11-23
+
+- Add the full MeshCore community preset API catalog, including Hungary (869.618 / SF7 / BW62.5 / CR4/5 / 2-byte paths), with a bundled offline snapshot and validated persistent cache (issue #8).
+- Refresh stale catalogs quietly at startup; add R to refresh immediately in Region. Bound fetches and clean up the child at exit; keep last-good presets offline.
+- Pin selected radio/path defaults until explicit reselection, preserve legacy profiles and user overrides, and include downloaded profiles in encrypted backups. Mark presets outside the CAPs’ rated band unavailable.
+- Apply airtime accounting by frequency band so newly downloaded European profiles retain physical TX guards.
+
 ## 0.1.28 — 2026-11-23
 
 - Publish to GitHub and the Cardputer app store (submission #733); verify both live registry versions/checksums. Pass 130 local/ARM64 and GitHub CI tests, confirm the installed page via APPLaunch and physical LCD, and preserve device identity, channels and history.

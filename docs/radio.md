@@ -4,29 +4,44 @@ Select **Settings → Region**, choose a profile with Up/Down, then press Enter.
 Restart MeshCore to apply it. Selecting or cancelling a profile never transmits.
 Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 
-| Profile | MHz | BW kHz | SF | CR | TX dBm | Path hash bytes |
-| --- | ---: | ---: | ---: | --- | ---: | ---: |
-| US | 910.525 | 62.5 | 7 | 4/5 | 20 | 1 |
-| EU (legacy) | 869.618 | 62.5 | 8 | 4/5 | 14 | 1 |
-| Japan (experimental) | 920.800 | 125 | 12 | 4/8 | 13 | 1 |
-| Canada | 910.525 | 62.5 | 7 | 4/5 | 20 | 3 |
-| Australia (narrow) | 916.575 | 62.5 | 7 | 4/7 | 20 | 2 |
-| New Zealand (narrow) | 917.375 | 62.5 | 7 | 4/5 | 20 | 2 |
-| EU / UK | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 |
-| Switzerland | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 |
-| Czechia | 869.432 | 62.5 | 7 | 4/5 | 14 | 2 |
-| Netherlands | 869.618 | 62.5 | 7 | 4/5 | 14 | 1 |
-| Portugal (868) | 869.618 | 62.5 | 7 | 4/6 | 14 | 1 |
-| Thailand | 921.000 | 62.5 | 7 | 4/5 | 13 | 1 |
-| Vietnam (narrow) | 920.250 | 62.5 | 8 | 4/5 | 13 | 1 |
-| Scotland / ScotMesh | 869.618 | 62.5 | 8 | 4/8 | 14 | 3 |
-| Slovakia | 869.618 | 62.5 | 7 | 4/5 | 14 | 2 |
+| Profile | MHz | BW kHz | SF | CR | TX dBm | Path bytes | CAP |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| USA | 910.525 | 62.5 | 7 | 4/5 | 20 | 1 | Available |
+| Europe (legacy) | 869.618 | 62.5 | 8 | 4/5 | 14 | 1 | Available |
+| Japan | 920.800 | 125 | 12 | 4/8 | 13 | 1 | Available |
+| Canada | 910.525 | 62.5 | 7 | 4/5 | 20 | 3 | Available |
+| Australia (Narrow) | 916.575 | 62.5 | 7 | 4/7 | 20 | 2 | Available |
+| New Zealand (Narrow) | 917.375 | 62.5 | 7 | 4/5 | 20 | 2 | Available |
+| EU/UK (Narrow) | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 | Available |
+| Switzerland | 869.618 | 62.5 | 8 | 4/8 | 14 | 1 | Available |
+| Czech Republic (Narrow) | 869.432 | 62.5 | 7 | 4/5 | 14 | 2 | Available |
+| Netherlands | 869.618 | 62.5 | 7 | 4/5 | 14 | 1 | Available |
+| Portugal 868 | 869.618 | 62.5 | 7 | 4/6 | 14 | 1 | Available |
+| Thailand | 921.000 | 62.5 | 7 | 4/5 | 13 | 1 | Available |
+| Vietnam (Narrow) | 920.250 | 62.5 | 8 | 4/5 | 13 | 1 | Available |
+| Slovakia | 869.618 | 62.5 | 7 | 4/5 | 14 | 2 | Available |
+| Scotland · ScotMesh | 869.618 | 62.5 | 8 | 4/8 | 14 | 3 | Available |
+| Australia | 915.800 | 250 | 10 | 4/5 | 20 | 2 | Available |
+| Australia (Mid) | 915.075 | 125 | 9 | 4/5 | 20 | 2 | Available |
+| Australia: SA, WA | 923.125 | 62.5 | 8 | 4/8 | 20 | 2 | Outside rated band |
+| Australia: QLD | 923.125 | 62.5 | 8 | 4/5 | 20 | 2 | Outside rated band |
+| Brazil | 923.125 | 62.5 | 8 | 4/8 | 20 | 1 | Outside rated band |
+| Costa Rica | 910.525 | 125 | 11 | 4/5 | 20 | 1 | Available |
+| EU/UK (Deprecated) | 869.525 | 250 | 11 | 4/5 | 14 | 1 | Available |
+| EU 433MHz (Long Range) | 433.650 | 250 | 11 | 4/5 | 10 | 1 | Outside rated band |
+| EU 433MHz (Narrow) | 433.650 | 62.5 | 8 | 4/8 | 10 | 1 | Outside rated band |
+| Hungary | 869.618 | 62.5 | 7 | 4/5 | 14 | 2 | Available |
+| Netherlands (Limburg) | 869.618 | 62.5 | 8 | 4/8 | 14 | 2 | Available |
+| New Zealand (Gisborne) | 917.375 | 250 | 11 | 4/5 | 20 | 1 | Available |
+| Portugal 433 | 433.375 | 62.5 | 9 | 4/6 | 10 | 1 | Outside rated band |
+| USA - Southern California | 927.875 | 62.5 | 7 | 4/5 | 20 | 3 | Outside rated band |
+| Vietnam (Deprecated) | 920.250 | 250 | 11 | 4/5 | 13 | 1 | Available |
 
 These are offline community starting points, not universal national settings or
 an equipment approval. Match your local mesh's radio settings and antenna band.
-The values (except legacy EU and experimental Japan) follow the
+The API entries follow the
 [official MeshCore preset API](https://api.meshcore.nz/api/v1/config), checked
-2026-11-18. Power defaults are conservative application choices; the API does not
+2026-11-23. Power defaults are conservative application choices; the API does not
 specify them. The app deliberately excludes 433 MHz and presets outside the
 CAP's published 868–923 MHz range. US peer messaging has been tested; other
 profiles need local field testing. No automatic frequency changes or online
@@ -173,3 +188,27 @@ supports 1-, 2- and 3-byte paths; 4 bytes is reserved. The path size setting
 controls this node’s outgoing encoding, not which hash sizes repeaters forward.
 No regional RF defaults or joined-channel secrets change when editing these
 protocol settings. Scope/path wire-format tests run without transmitting.
+
+## Online catalog and offline cache
+
+The bundled snapshot contains all 27 API entries retrieved 2026-11-23. Hungary
+is 869.618 MHz, SF7, BW62.5, CR4/5, 2-byte paths, with this app’s conservative
+14 dBm European power default. Source: [MeshCore config API](https://api.meshcore.nz/api/v1/config).
+The API does not supply TX power; downloaded entries cannot increase it.
+
+Startup refreshes a cache older than 24 hours in a bounded child process;
+Region → R forces a refresh. HTTPS, response-size limits, parameter/path-size
+validation and a last-good cache keep offline operation intact. Refreshing
+never changes the running radio or selected-profile snapshot. Confirming a
+preset saves its radio/path defaults atomically; restart to apply. Explicit
+coding-rate, scope and path overrides remain in force. Profiles removed from
+the API remain available if bundled or saved locally. New names get stable
+internal IDs, so downloaded profiles can survive encrypted backup/restore.
+
+Both CAPs are rated for [868–923 MHz](https://docs.m5stack.com/en/cap/Cap_LoRa-1262)
+([legacy CAP](https://docs.m5stack.com/en/cap/Cap_LoRa868)). Other entries stay
+visible but cannot be selected, rather than implying 433 MHz support. Values
+outside the hardware rating are not tested by this app. Current European API
+presets retain the 10% rolling-hour budget; a future 868 MHz entry outside the
+869.4–869.65 MHz sub-band uses a conservative 0.1% budget. This is not equipment
+certification or a replacement for local radio rules.

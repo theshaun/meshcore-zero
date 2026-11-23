@@ -85,13 +85,17 @@ class RegionalRadioMixin:
                 self._packet_airtime=0.0
 
     async def _execute_transmission(self,*args,**kwargs):
-        from .regions import EUROPE
-        if self.region in EUROPE:
+        frequency=self.frequency
+        if 863000000<=frequency<=870000000:
+            # All current European API presets fit the 10% sub-band. For a
+            # future entry outside it, retain a conservative 0.1% hourly cap.
+            half=self.bandwidth/2
+            limit=360 if 869400000<=frequency-half and frequency+half<=869650000 else 3.6
             if self.airtime_budget is None:
                 raise RuntimeError('Hourly airtime accounting unavailable')
             # Commit before SetTx, after LBT/privacy checks. An uncertain TX
             # failure remains charged; every retry/ACK passes this same guard.
-            try:self.airtime_budget.reserve(self._packet_airtime)
+            try:self.airtime_budget.reserve(self._packet_airtime,limit=limit)
             except ValueError as exc:
                 self.airtime_error=str(exc)
                 raise

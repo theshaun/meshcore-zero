@@ -28,6 +28,8 @@ class UI:
     def __init__(self, store, backend=None):
         self.store, self.backend = store, backend
         self.menu = -1
+        self.region_catalog=None
+        self.presets_busy=False
         self.screen = 'inbox'
         self.selected = 0
         self.chat = None
@@ -147,6 +149,12 @@ class UI:
             self.leave_target['id'] if self.leave_target else None,self.leave_choice,self.identity_ui.render_key(),self.channel_ui.render_key(),self.protocol_ui.render_key(),self.backup_ui.render_key(),self.map_ui.render_key(),self.join_ui.render_key(),
             self.backend.state if self.backend else '',
             self.backend.error if self.backend else '')
+
+    def region_choices(self):
+        if self.region_catalog is None:
+            from .preset_catalog import catalog
+            self.region_catalog=catalog(self.store)
+        return self.region_catalog
 
     def font(self, size=12, bold=False):
         key = (size, bold)
@@ -345,17 +353,24 @@ class UI:
                 elif len(key)==1 and key.isprintable() and len(self.password)<128: self.password+=key
             return
         if self.screen == 'regions':
-            regions=list(PRESETS)
+            regions=list(self.region_choices())
             if key in ('up','down'):
                 self.selected=max(0,min(len(regions)-1,self.selected+(1 if key=='down' else -1)))
             elif key in ('escape','enter'):
                 if key=='enter':
                     chosen=regions[self.selected]
-                    self.store.set('region',chosen)
+                    from .preset_catalog import select_profile
+                    try:select_profile(self.store,self.region_choices()[chosen])
+                    except ValueError as exc:self.notice(str(exc));return
                     self.notice('JP experimental · see README' if chosen=='JP' else 'Region saved · restart app to apply')
                 self.screen,self.selected='settings',0
+                self.region_catalog=None
             elif key=='tab':
-                self.switch_tab(0)
+                self.region_catalog=None;self.switch_tab(0)
+            elif key=='r':
+                import asyncio
+                from .preset_catalog import refresh
+                task=asyncio.create_task(refresh(self,manual=True));self.tasks.add(task);task.add_done_callback(self.tasks.discard)
             return
         if key == 'tab':
             self.switch_tab((self.active_tab()+1)%len(TAB_SCREENS))
@@ -397,7 +412,9 @@ class UI:
                 elif self.screen == 'settings':
                     if self.selected == 0:
                         self.screen='regions'
-                        self.selected=list(PRESETS).index(self.store.get('region','US'))
+                        self.region_catalog=None
+                        keys=list(self.region_choices());current=self.store.get('region','US')
+                        self.selected=keys.index(current) if current in keys else 0
                     elif self.selected == 1:
                         region = self.store.get('region', 'US')
                         coding_rate = radio_config(self.store, region)['coding_rate']
@@ -609,24 +626,28 @@ class UI:
                 text(10,143,'*Estimated for single-cell Li-ion; voltage reported',MUTED,8,width=300)
                 hint='Enter request again   Backspace forget   Esc back'
         elif self.screen == 'regions':
-            regions=list(PRESETS)
+            regions=list(self.region_choices())
             start=max(0,self.selected-3)
             for i,region in enumerate(regions[start:start+4],start):
-                cfg=radio_config(self.store,region)
+                entry=self.region_choices()[region];cfg=dict(entry['radio'])
+                cfg['coding_rate']=int(self.store.get('coding_rate_'+region,cfg['coding_rate']))
+                path_size=int(self.store.get('path_bytes_'+region,entry['path_bytes']))
                 y=23+(i-start)*32
                 d.rounded_rectangle((5,y,314,y+30),4,fill=SELECT if i==self.selected else PANEL)
-                label=NAMES[region]+(' · experimental' if region=='JP' else '')
+                label=entry['title']+(' · experimental' if region=='JP' else '')
                 if region=='SCO':
                     from .regions import protocol_config
                     scope,size=protocol_config(self.store,region)
                     label+=f' · {scope or "unscoped"} / {size}B'
                 text(12,y+1,label,bold=True,width=292)
-                detail=f"{cfg['frequency']/1e6:.3f} MHz  SF{cfg['spreading_factor']}  BW{cfg['bandwidth']/1000:g}  CR4/{cfg['coding_rate']}"
+                from .preset_catalog import supported
+                detail=(f"{cfg['frequency']/1e6:.3f} MHz SF{cfg['spreading_factor']} BW{cfg['bandwidth']/1000:g} CR4/{cfg['coding_rate']} {path_size}B" if supported(entry) else f"{cfg['frequency']/1e6:g} MHz · outside CAP band")
                 text(12,y+18,detail,MUTED,9,width=292)
-            hint='↑↓ select   Enter save   Restart to apply'
+            hint='↑↓ select   Enter save   R refresh   Esc back'
         elif self.screen == 'settings':
             cr = radio_config(self.store)['coding_rate']
-            labels=['Region: '+self.store.get('region','US')+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore', 'GPS broadcasting: '+self.store.get('gps_broadcast','off').title(), 'Scope / path hash']
+            from .preset_catalog import selected_profile
+            labels=['Region: '+selected_profile(self.store,self.store.get('region','US'))['title']+'  (restart to apply)', f'Coding rate: 4/{cr}  (restart to apply)', 'Name: '+self.store.get('name','MeshCore Zero'), 'Announce this node', 'Update app', 'Message sound: '+self.store.get('message_sound','on').title(), 'Identity: import / export', 'Backup / restore', 'GPS broadcasting: '+self.store.get('gps_broadcast','off').title(), 'Scope / path hash']
             start=max(0,self.selected-4)
             for i in range(start,min(len(labels),start+5)):
                 label=labels[i]

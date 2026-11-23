@@ -1,6 +1,6 @@
 """Offline community presets; RF choices are not equipment certification.
 
-Source: MeshCore config API, retrieved 2026-11-18. Japan uses the community
+Source: MeshCore config API; bundled snapshot retrieved 2026-11-23. Japan uses the community
 920.800/SF12/BW125/CR8 proposal, not a preset in that API.
 Scotland follows the ScotMesh wiki (2026-11-20). See docs/radio.md.
 """
@@ -29,6 +29,15 @@ PATH_BYTES = {'CA':3, 'AU':2, 'NZ':2, 'CZ':2, 'SK':2, 'SCO':3}
 DEFAULT_SCOPES = {'SCO':'sco'}
 EUROPE = {'EU','UK','CH','CZ','NL','PT','SK','SCO'}
 
+# Bundled API snapshot makes the full catalog available without a network.
+from .preset_catalog import bundled_entries
+for _entry in bundled_entries():
+    _key=_entry['id']
+    if _key not in PRESETS:
+        PRESETS[_key]=dict(_entry['radio']);NAMES[_key]=_entry['title']
+        PATH_BYTES[_key]=_entry['path_bytes']
+        if 863000000<=_entry['radio']['frequency']<=870000000:EUROPE.add(_key)
+
 def normalize_scope(value):
     import re
     value=value.strip().lower().lstrip('#')
@@ -40,10 +49,12 @@ def normalize_scope(value):
 def protocol_config(store, region=None):
     """Per-profile overrides; missing scope inherits preset, empty is unscoped."""
     region=region or store.get('region','US')
-    if region not in PRESETS:raise ValueError('Unknown radio region')
+    from .preset_catalog import selected_profile
+    profile=selected_profile(store,region) if store else None
+    if profile is None and region not in PRESETS:raise ValueError('Unknown radio region')
     scope=store.get('scope_'+region,DEFAULT_SCOPES.get(region,'')) if store else DEFAULT_SCOPES.get(region,'')
     scope=normalize_scope(scope)
-    size=int(store.get('path_bytes_'+region,PATH_BYTES.get(region,1))) if store else PATH_BYTES.get(region,1)
+    size=int(store.get('path_bytes_'+region,profile['path_bytes'])) if store else PATH_BYTES.get(region,1)
     if size not in (1,2,3):raise ValueError('Path hash must be 1, 2 or 3 bytes')
     return scope,size
 

@@ -83,6 +83,8 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - **Tab** cycles through Chats, Join, Nodes, Map, and Settings and immediately displays each page. **Enter** acts on the visible page.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
+- In the **Chats conversation list**, **F** moves up and **X** moves down;
+  **Fn+F / Fn+X** continue to work. F and X type normally in messages and forms.
 - Type in a conversation and press **Enter** to send.
 - **Escape** returns to Chats; Escape again exits to the launcher.
 - **Join** lets you choose **Hashtag**, **Private**, or **Public**. Use **Left/Right**
@@ -209,10 +211,6 @@ establish Japanese equipment certification. Use an appropriately approved setup.
 See [radio profiles and CAP compatibility](docs/radio.md) for exact settings,
 Japan limitations, hardware detection, and field-test coverage. A hashtag channel
 changes its shared key, not the radio frequency.
-
-In the **Chats conversation list**, **F** moves up and **X** moves down.
-**Fn+F / Fn+X** (the Up/Down arrows) continue to work. These plain-letter
-shortcuts apply only to the list; F and X type normally in messages and forms.
 
 ## Message indicators
 

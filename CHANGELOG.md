@@ -2,6 +2,8 @@
 
 ## 0.1.30 — 2026-11-23
 
+- Publish to GitHub and the app store (submission #766); verify both live registry versions/checksums. Pass 139 local/ARM64 tests and GitHub CI; verify F/X and arrow events through APPLaunch with physical LCD transfers and preserve identity, channels and history.
+
 - Add F/X as Up/Down shortcuts in the Chats conversation list, alongside Fn+F/Fn+X arrow navigation. Keep literal F/X entry in messages and forms, and update the inbox hint and README controls.
 
 ## 0.1.29 — 2026-11-23

@@ -2,6 +2,8 @@
 
 ## 0.1.31 — 2026-11-24
 
+- Publish to GitHub and the app store (submission #778); verify both live registry versions/checksums. Pass 143 local/ARM64 tests and GitHub CI; open the packaged warning through APPLaunch, verify physical LCD transfers and the default-Cancel action, and preserve the real device’s US profile, identity, channels and history without a 927 MHz RF test.
+
 - Allow nearby upper-900 MHz presets such as SoCal 927.875 MHz after an Experimental frequency warning with Cancel selected. Keep 433 MHz/distant bands blocked and bound the occupied band to 928 MHz.
 - Remember acceptance per preset/RF parameter set, require fresh confirmation after changed RF defaults, and preserve/validate it in encrypted backups. Selecting a preset still requires restarting to apply.
 - Label experimental rows and document that out-of-rating CAP operation and RF performance remain unverified.

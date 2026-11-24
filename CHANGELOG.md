@@ -2,6 +2,8 @@
 
 ## 0.1.32 — 2026-11-24
 
+- Publish to GitHub and the app store (submission #779); verify both live registry versions/checksums. Pass 148 local/ARM64 tests and GitHub CI; verify Settings and Join navigation/text focus through APPLaunch with physical LCD transfers, preserve private device data, and answer/close issue #9.
+
 - Extend launcher-style F=Up, X=Down, Z=Left and C=Right across non-text controls, including menus, region/node lists, map controls and confirmations (issue #9).
 - Apply aliases by focused control and modal state; preserve letter entry in message composers, channel names/keys, scopes, passwords, identity inputs and file paths. Keep Fn arrows available.
 - Document selector-versus-text-field behavior in the README.

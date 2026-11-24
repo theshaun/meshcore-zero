@@ -12,9 +12,9 @@ from .regions import PRESETS
 
 def radio_config(store, region=None):
     region = region or store.get('region', 'US')
-    from .preset_catalog import selected_profile,supported
+    from .preset_catalog import selected_profile,can_use
     profile=selected_profile(store,region)
-    if not supported(profile):raise ValueError('Preset requires a different radio CAP')
+    if not can_use(store,profile):raise ValueError('Preset requires a different radio CAP')
     config = dict(profile['radio'])
     coding_rate = int(store.get('coding_rate_' + region, config['coding_rate']))
     if coding_rate not in (5, 6, 7, 8):

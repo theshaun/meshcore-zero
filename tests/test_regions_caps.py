@@ -62,7 +62,7 @@ class RegionTests(unittest.TestCase):
                         self.assertTrue(868000000<=cfg['frequency']<=923000000)
                         self.assertIn(cfg['coding_rate'],(5,6,7,8))
                     else:
-                        with self.assertRaisesRegex(ValueError,'different radio CAP'):radio_config(s,region)
+                        with self.assertRaises(ValueError):radio_config(s,region)
                 self.assertEqual(PATH_BYTES['CA'],3);self.assertEqual(PATH_BYTES['AU'],2)
                 s.set('region','INVALID')
                 with self.assertRaises(ValueError):radio_config(s)

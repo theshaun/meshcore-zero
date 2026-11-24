@@ -76,7 +76,7 @@ def validate(data):
     if len(settings)!=len(data['settings']) or any(not isinstance(k,str) or not isinstance(v,str) for k,v in settings.items()):fail()
     if settings.get('identity'):stored_key(settings['identity'])
     if settings.get('identity_backup'):stored_key(settings['identity_backup'])
-    from .preset_catalog import catalog,validate_entries,validate_entry,supported,CACHE_KEY,PROFILE_PREFIX
+    from .preset_catalog import catalog,validate_entries,validate_entry,can_use,ACK_PREFIX,CACHE_KEY,PROFILE_PREFIX
     try:
         if settings.get(CACHE_KEY):validate_entries(json.loads(settings[CACHE_KEY]))
         for key,value in settings.items():
@@ -90,8 +90,9 @@ def validate(data):
     from .regions import PRESETS
     if current not in PRESETS and PROFILE_PREFIX+current not in settings:fail()
     active=json.loads(settings[PROFILE_PREFIX+current]) if PROFILE_PREFIX+current in settings else profiles[current]
-    if not supported(active):fail()
+    if not can_use(None,active,settings=settings):fail()
     for k,v in settings.items():
+        if k.startswith(ACK_PREFIX) and (k[len(ACK_PREFIX):] not in profiles or not re.fullmatch('[0-9a-f]{64}',v)):fail()
         if k.startswith('scope_') and (k[6:] not in profiles or v and not re.fullmatch('[a-z0-9][a-z0-9_-]{0,29}',v)):fail()
         if k.startswith('path_bytes_') and (k[11:] not in profiles or v not in ('1','2','3')):fail()
         if k.startswith('coding_rate_') and v not in ('5','6','7','8'):fail()

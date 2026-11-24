@@ -23,9 +23,9 @@ Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 | Scotland · ScotMesh | 869.618 | 62.5 | 8 | 4/8 | 14 | 3 | Available |
 | Australia | 915.800 | 250 | 10 | 4/5 | 20 | 2 | Available |
 | Australia (Mid) | 915.075 | 125 | 9 | 4/5 | 20 | 2 | Available |
-| Australia: SA, WA | 923.125 | 62.5 | 8 | 4/8 | 20 | 2 | Outside rated band |
-| Australia: QLD | 923.125 | 62.5 | 8 | 4/5 | 20 | 2 | Outside rated band |
-| Brazil | 923.125 | 62.5 | 8 | 4/8 | 20 | 1 | Outside rated band |
+| Australia: SA, WA | 923.125 | 62.5 | 8 | 4/8 | 20 | 2 | Experimental opt-in |
+| Australia: QLD | 923.125 | 62.5 | 8 | 4/5 | 20 | 2 | Experimental opt-in |
+| Brazil | 923.125 | 62.5 | 8 | 4/8 | 20 | 1 | Experimental opt-in |
 | Costa Rica | 910.525 | 125 | 11 | 4/5 | 20 | 1 | Available |
 | EU/UK (Deprecated) | 869.525 | 250 | 11 | 4/5 | 14 | 1 | Available |
 | EU 433MHz (Long Range) | 433.650 | 250 | 11 | 4/5 | 10 | 1 | Outside rated band |
@@ -34,7 +34,7 @@ Existing US/EU profiles and per-profile coding-rate overrides are preserved.
 | Netherlands (Limburg) | 869.618 | 62.5 | 8 | 4/8 | 14 | 2 | Available |
 | New Zealand (Gisborne) | 917.375 | 250 | 11 | 4/5 | 20 | 1 | Available |
 | Portugal 433 | 433.375 | 62.5 | 9 | 4/6 | 10 | 1 | Outside rated band |
-| USA - Southern California | 927.875 | 62.5 | 7 | 4/5 | 20 | 3 | Outside rated band |
+| USA - Southern California | 927.875 | 62.5 | 7 | 4/5 | 20 | 3 | Experimental opt-in |
 | Vietnam (Deprecated) | 920.250 | 250 | 11 | 4/5 | 13 | 1 | Available |
 
 These are offline community starting points, not universal national settings or
@@ -42,8 +42,8 @@ an equipment approval. Match your local mesh's radio settings and antenna band.
 The API entries follow the
 [official MeshCore preset API](https://api.meshcore.nz/api/v1/config), checked
 2026-11-23. Power defaults are conservative application choices; the API does not
-specify them. The app shows 433 MHz and other presets outside the
-CAP's published 868–923 MHz range as unavailable for selection. US peer messaging has been tested; other
+specify them. 433 MHz and distant bands remain unavailable. Nearby upper-900 MHz profiles
+can be selected experimentally after a Cancel-first confirmation. US peer messaging has been tested; other
 profiles need local field testing. Online preset downloads update the catalog only; automatic
 frequency changes never take place.
 
@@ -206,9 +206,37 @@ the API remain available if bundled or saved locally. New names get stable
 internal IDs, so downloaded profiles can survive encrypted backup/restore.
 
 Both CAPs are rated for [868–923 MHz](https://docs.m5stack.com/en/cap/Cap_LoRa-1262)
-([legacy CAP](https://docs.m5stack.com/en/cap/Cap_LoRa868)). Other entries stay
-visible but cannot be selected, rather than implying 433 MHz support. Values
-outside the hardware rating are not tested by this app. Current European API
+([legacy CAP](https://docs.m5stack.com/en/cap/Cap_LoRa868)). 433 MHz and distant-band entries remain visible but cannot be selected.
+Profiles above 923 MHz whose occupied bandwidth stays at or below 928 MHz may
+be selected only after the user chooses Use experimentally. Values outside
+the hardware rating have not undergone RF performance testing by this app. Current European API
 presets retain the 10% rolling-hour budget; a future 868 MHz entry outside the
 869.4–869.65 MHz sub-band uses a conservative 0.1% budget. This is not equipment
 certification or a replacement for local radio rules.
+
+## Experimental upper-900 MHz override
+
+SoCal (927.875 MHz) and nearby upper-900 MHz presets show an Experimental
+frequency confirmation with Cancel selected. Enter on Cancel or Esc leaves the
+selected radio profile unchanged. Use experimentally saves the profile and
+acknowledgement atomically; a restart is still needed to apply it. Previewing
+or accepting the settings does not itself retune the live radio or transmit.
+
+The acknowledgement is per preset and tied to the full RF parameter set.
+Selecting an upstream revision with different RF parameters prompts again; the
+already-selected snapshot stays pinned meanwhile. Encrypted full backups retain
+and validate the acknowledgement so restoring the selected profile works
+offline. API refreshes cannot grant an acknowledgement. The opt-in cannot
+unlock 433 MHz, frequencies above 928 MHz, or packets whose configured occupied
+band extends above 928 MHz.
+
+The old 923 MHz block was an application policy based on the CAP specification,
+not evidence of a CAP firmware lock. The underlying SX1262 supports
+[150–960 MHz](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262),
+but the assembled CAP’s RF matching, antenna response and emissions beyond its
+published rating remain unverified. The warning does not promise successful
+operation or a particular reduction in efficiency.
+
+Tests use disposable settings and offline configurations. The physical-device
+UI check leaves the test radio on its existing US preset; no 927 MHz RF
+transmission is performed.

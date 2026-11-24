@@ -183,9 +183,19 @@ until you select it again. Existing identities, channels, legacy settings,
 and per-profile coding-rate/scope/path overrides are preserved. Full encrypted
 backups include downloaded and selected profiles for offline restoration.
 
-The catalog shows presets outside the CAPs’ documented **868–923 MHz** range
-as unavailable and refuses to select them; this includes 433 MHz presets and
-some higher-frequency regional variants. Match your local mesh and hardware.
+Presets within the CAPs’ documented **868–923 MHz** range work as before.
+Nearby upper-900 MHz presets, including **USA - Southern California (927.875 MHz)**,
+can be selected experimentally after a **Cancel-first warning**. The complete
+occupied bandwidth must stay at or below 928 MHz; 433 MHz and more distant
+bands remain blocked. Select **Use experimentally**, then restart to apply.
+
+Acceptance is remembered for that preset’s exact RF parameters and is included
+in encrypted backups. If an upstream preset changes those parameters, selecting
+it again requires fresh confirmation. This bypasses MeshCore-Zero’s previous
+app-side limit; it does not establish the CAP’s RF performance outside its
+published range. Operation, sensitivity and output quality at these frequencies
+have not been verified, so reduced efficiency or reliable operation cannot be
+promised. Match your local mesh, hardware and radio rules.
 
 **Settings → Scope / path hash** lets you override the selected preset’s region
 scope and choose **1, 2 or 3 bytes** for outgoing path hashes. Enter the scope

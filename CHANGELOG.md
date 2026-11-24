@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.31 — 2026-11-24
+
+- Allow nearby upper-900 MHz presets such as SoCal 927.875 MHz after an Experimental frequency warning with Cancel selected. Keep 433 MHz/distant bands blocked and bound the occupied band to 928 MHz.
+- Remember acceptance per preset/RF parameter set, require fresh confirmation after changed RF defaults, and preserve/validate it in encrypted backups. Selecting a preset still requires restarting to apply.
+- Label experimental rows and document that out-of-rating CAP operation and RF performance remain unverified.
+
 ## 0.1.30 — 2026-11-23
 
 - Publish to GitHub and the app store (submission #766); verify both live registry versions/checksums. Pass 139 local/ARM64 tests and GitHub CI; verify F/X and arrow events through APPLaunch with physical LCD transfers and preserve identity, channels and history.

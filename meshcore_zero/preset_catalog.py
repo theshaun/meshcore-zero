@@ -14,6 +14,7 @@ MAX_BYTES=256*1024
 CACHE_KEY='radio_presets'
 TIME_KEY='radio_presets_updated'
 PROFILE_PREFIX='radio_profile_'
+ACK_PREFIX='experimental_ack_'
 TITLE_KEYS={
  'Australia':'AU_WIDE','Australia (Narrow)':'AU','Australia (Mid)':'AU_MID',
  'Australia: SA, WA':'AU_SA_WA','Australia: QLD':'AU_QLD','Brazil':'BR',
@@ -118,10 +119,34 @@ def selected_profile(store,region):
 def supported(entry):return 868000000<=entry['radio']['frequency']<=923000000
 
 
-def select_profile(store,entry):
+def experimental(entry):
+    """Nearby upper 900 MHz presets only; never unlock 433 MHz or >928 MHz."""
+    radio=entry['radio']
+    return 923000000<radio['frequency'] and radio['frequency']+radio['bandwidth']/2<=928000000
+
+
+def acknowledgement(entry):
+    return hashlib.sha256(json.dumps(entry['radio'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
+def accepted(store,entry,settings=None):
+    get=settings.get if settings is not None else store.get
+    return get(ACK_PREFIX+entry['id'])==acknowledgement(entry)
+
+
+def can_use(store,entry,settings=None):
+    return supported(entry) or experimental(entry) and accepted(store,entry,settings)
+
+
+def select_profile(store,entry,*,allow_experimental=False):
     validate_entry(entry)
-    if not supported(entry):raise ValueError('This preset needs a different radio CAP')
+    if not supported(entry):
+        if not experimental(entry):raise ValueError('This preset needs a different radio CAP')
+        if not allow_experimental and not accepted(store,entry):
+            raise ValueError('Experimental frequency requires confirmation')
     with store.db:
+        if experimental(entry) and allow_experimental:
+            store.db.execute('INSERT OR REPLACE INTO settings VALUES(?,?)',(ACK_PREFIX+entry['id'],acknowledgement(entry)))
         store.db.execute('INSERT OR REPLACE INTO settings VALUES(?,?)',(PROFILE_PREFIX+entry['id'],json.dumps(entry,separators=(',',':'))))
         store.db.execute('INSERT OR REPLACE INTO settings VALUES(?,?)',('region',entry['id']))
 

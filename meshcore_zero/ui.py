@@ -28,6 +28,8 @@ class UI:
     def __init__(self, store, backend=None):
         self.store, self.backend = store, backend
         self.menu = -1
+        self.experimental_entry=None
+        self.experimental_choice=0
         self.region_catalog=None
         self.presets_busy=False
         self.screen = 'inbox'
@@ -143,6 +145,7 @@ class UI:
             self.update_stage,self.update_done,self.update_total,
             int(time.monotonic()-self.update_started) if self.update_state=='busy' and self.update_started else None,
             self.launch_state, self.launch_error,
+            repr(self.experimental_entry),self.experimental_choice,
             tuple(self.startup_release) if self.startup_release else None, self.startup_update_choice,
             self.repeater_state, self.repeater_choice, len(self.repeater_password),
             repr(self.repeater_stats), self.repeater_clock, self.repeater_error,
@@ -155,6 +158,13 @@ class UI:
             from .preset_catalog import catalog
             self.region_catalog=catalog(self.store)
         return self.region_catalog
+
+    def save_region(self,entry,*,experimental=False):
+        from .preset_catalog import select_profile
+        select_profile(self.store,entry,allow_experimental=experimental)
+        self.notice('JP experimental · see README' if entry['id']=='JP' else 'Region saved · restart app to apply')
+        self.screen,self.selected='settings',0
+        self.region_catalog=None
 
     def font(self, size=12, bold=False):
         key = (size, bold)
@@ -275,6 +285,15 @@ class UI:
                 self.screen = 'update'
                 self.start_update('download')
             return
+        if self.experimental_entry is not None:
+            if key in ('tab','up','down','left','right'):self.experimental_choice=1-self.experimental_choice
+            elif key=='escape' or key=='enter' and self.experimental_choice==0:
+                self.experimental_entry=None
+            elif key=='enter':
+                try:self.save_region(self.experimental_entry,experimental=True)
+                except ValueError as exc:self.notice(str(exc))
+                self.experimental_entry=None
+            return
         if self.screen=='join':
             await self.join_ui.key(key)
             return
@@ -358,13 +377,17 @@ class UI:
                 self.selected=max(0,min(len(regions)-1,self.selected+(1 if key=='down' else -1)))
             elif key in ('escape','enter'):
                 if key=='enter':
-                    chosen=regions[self.selected]
-                    from .preset_catalog import select_profile
-                    try:select_profile(self.store,self.region_choices()[chosen])
+                    entry=self.region_choices()[regions[self.selected]]
+                    from .preset_catalog import experimental,accepted
+                    if experimental(entry) and not accepted(self.store,entry):
+                        from copy import deepcopy
+                        self.experimental_entry=deepcopy(entry);self.experimental_choice=0
+                        return
+                    try:self.save_region(entry)
                     except ValueError as exc:self.notice(str(exc));return
-                    self.notice('JP experimental · see README' if chosen=='JP' else 'Region saved · restart app to apply')
-                self.screen,self.selected='settings',0
-                self.region_catalog=None
+                else:
+                    self.screen,self.selected='settings',0
+                    self.region_catalog=None
             elif key=='tab':
                 self.region_catalog=None;self.switch_tab(0)
             elif key=='r':
@@ -515,11 +538,28 @@ class UI:
         text(12,153,'Tab / arrows choose   Enter select   Esc later',MUTED,9)
         return image
 
+    def draw_experimental_frequency(self):
+        img=Image.new('RGB',(320,170),BG);d=ImageDraw.Draw(img);self.draw_tabs(img)
+        def text(x,y,value,color=TEXT,size=11,bold=False,width=300):self.text.draw(img,(x,y),value,color,size,bold,width=width)
+        frequency=self.experimental_entry['radio']['frequency']/1e6
+        text(10,27,'Experimental frequency',size=14,bold=True)
+        text(10,53,f"{frequency:.3f} MHz is outside this CAP's",size=11)
+        text(10,69,'published 868–923 MHz range.',size=11)
+        text(10,88,'Operation and RF performance',MUTED,11)
+        text(10,104,'have not been verified.',MUTED,11)
+        for i,(x,width,label) in enumerate(((8,87,'Cancel'),(103,209,'Use experimentally'))):
+            active=i==self.experimental_choice
+            d.rounded_rectangle((x,126,x+width,149),4,fill=SELECT if active else PANEL,outline=ACCENT if active else PANEL)
+            text(x+(width-self.text.width(label,11,active))/2,131,label,ACCENT if active else TEXT,11,active,width=width)
+        text(8,157,'Tab / arrows choose   Enter select   Esc cancel',MUTED,9)
+        return img
+
     def render(self):
         if self.launch_state:
             return self.draw_launch_notice()
         if self.startup_release:
             return self.draw_startup_update()
+        if self.experimental_entry is not None:return self.draw_experimental_frequency()
         if self.screen=='join':return self.join_ui.draw()
         if self.screen in ('map','map_position','map_details','gps_sharing'):return self.map_ui.draw()
         if self.screen=='backup':return self.backup_ui.draw()
@@ -643,8 +683,9 @@ class UI:
                     scope,size=protocol_config(self.store,region)
                     label+=f' · {scope or "unscoped"} / {size}B'
                 text(12,y+1,label,bold=True,width=292)
-                from .preset_catalog import supported
-                detail=(f"{cfg['frequency']/1e6:.3f} MHz SF{cfg['spreading_factor']} BW{cfg['bandwidth']/1000:g} CR4/{cfg['coding_rate']} {path_size}B" if supported(entry) else f"{cfg['frequency']/1e6:g} MHz · outside CAP band")
+                from .preset_catalog import supported,experimental
+                detail=(f"{cfg['frequency']/1e6:.3f} MHz SF{cfg['spreading_factor']} BW{cfg['bandwidth']/1000:g} CR4/{cfg['coding_rate']} {path_size}B" if supported(entry) or experimental(entry) else f"{cfg['frequency']/1e6:g} MHz · outside CAP band")
+                if experimental(entry):detail+=' · experimental'
                 text(12,y+18,detail,MUTED,9,width=292)
             hint='↑↓ select   Enter save   R refresh   Esc back'
         elif self.screen == 'settings':

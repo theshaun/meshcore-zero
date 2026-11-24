@@ -263,7 +263,28 @@ class UI:
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
 
+    def text_entry_active(self):
+        """Use focus, including modal precedence, rather than a global remap."""
+        if self.launch_state or self.startup_release or self.experimental_entry is not None or self.leave_target:
+            return False
+        if self.screen=='join':
+            return (self.join_ui.type,self.join_ui.field) in ((0,1),(1,1),(1,2))
+        if self.screen=='channel_options':return self.channel_ui.state=='scope'
+        if self.screen=='protocol':return self.protocol_ui.state=='scope'
+        if self.screen=='identity':return self.identity_ui.state in ('input','file')
+        if self.screen=='backup':return self.backup_ui.state in ('password','repeat','path')
+        if self.screen=='repeater':return self.repeater_state=='password'
+        if self.screen=='update':return self.update_state=='password'
+        # Unknown/new screens keep letters until their focus behavior is defined.
+        return self.screen not in ('inbox','nodes','settings','regions','map','map_details','gps_sharing')
+
+    def navigation_key(self,key):
+        if len(key)==1 and not self.text_entry_active():
+            return {'f':'up','x':'down','z':'left','c':'right'}.get(key.lower(),key)
+        return key
+
     async def key(self, key):
+        key=self.navigation_key(key)
         if self.launch_state:
             if self.launch_state=='conflict' and key=='escape':
                 self.running=False
@@ -406,8 +427,6 @@ class UI:
             else:
                 self.running = False
             return
-        if self.screen=='inbox' and key in ('f','F','x','X'):
-            key='up' if key.lower()=='f' else 'down'
         if self.screen in ('inbox', 'nodes', 'settings'):
             count = len(self.store.chats()) if self.screen == 'inbox' else len(self.nodes()) if self.screen == 'nodes' else 10
             if key=='backspace' and self.screen=='inbox' and count:

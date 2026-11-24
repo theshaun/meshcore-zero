@@ -91,7 +91,7 @@ class StoreTests(unittest.TestCase):
     def test_cardputer_symbol_layer_and_navigation(self):
         keyboard=Keyboard.__new__(Keyboard)
         keyboard.shift=set()
-        for code,char in ((39,'#'),(71,'-'),(70,'_'),(91,'.'),(28,'enter'),(15,'tab'),(103,'up'),(108,'down'),(33,'f'),(45,'x')):
+        for code,char in ((39,'#'),(71,'-'),(70,'_'),(91,'.'),(28,'enter'),(15,'tab'),(103,'up'),(108,'down'),(33,'f'),(45,'x'),(44,'z'),(46,'c')):
             self.assertEqual(keyboard.translate(1,code,1),char)
         keyboard.translate(1,42,1)
         self.assertEqual(keyboard.translate(1,30,1),'A')
@@ -110,7 +110,7 @@ class StoreTests(unittest.TestCase):
             for char in 'fxFX':await ui.key(char)
             self.assertEqual(ui.draft,'fxFX')
             await ui.key('escape');ui.channel_ui.open(next(c for c in self.store.chats() if c['id']=='#testing'))
-            await ui.key('x');self.assertEqual(ui.channel_ui.selected,0)
+            await ui.key('x');self.assertEqual(ui.channel_ui.selected,1)
         asyncio.run(scenario())
 
     def test_interrupted_send_is_not_left_sending(self):

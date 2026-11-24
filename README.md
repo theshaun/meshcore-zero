@@ -83,8 +83,12 @@ contains timing fields, not passwords or messages. For installer errors, inspect
 - **Tab** cycles through Chats, Join, Nodes, Map, and Settings and immediately displays each page. **Enter** acts on the visible page.
 - **Up/Down** selects a conversation or scrolls chat history. Use the keyboard's
   Fn arrow combinations where necessary.
-- In the **Chats conversation list**, **F** moves up and **X** moves down;
-  **Fn+F / Fn+X** continue to work. F and X type normally in messages and forms.
+- Outside focused text fields, launcher-style **F=Up, X=Down, Z=Left, C=Right**
+  works across lists, menus, selectors, map controls and confirmations. Fn arrows
+  continue to work. Uppercase letters work too. In focused text fields, the
+  letters type normally; use Fn arrows where needed. Chat's message composer
+  always keeps letter entry. On Join, focus the name/key field before typing
+  (Enter or Down from Type); the Type selector and Join button use navigation.
 - Type in a conversation and press **Enter** to send.
 - **Escape** returns to Chats; Escape again exits to the launcher.
 - **Join** lets you choose **Hashtag**, **Private**, or **Public**. Use **Left/Right**

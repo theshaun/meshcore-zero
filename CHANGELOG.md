@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.32 — 2026-11-24
+
+- Extend launcher-style F=Up, X=Down, Z=Left and C=Right across non-text controls, including menus, region/node lists, map controls and confirmations (issue #9).
+- Apply aliases by focused control and modal state; preserve letter entry in message composers, channel names/keys, scopes, passwords, identity inputs and file paths. Keep Fn arrows available.
+- Document selector-versus-text-field behavior in the README.
+
 ## 0.1.31 — 2026-11-24
 
 - Publish to GitHub and the app store (submission #778); verify both live registry versions/checksums. Pass 143 local/ARM64 tests and GitHub CI; open the packaged warning through APPLaunch, verify physical LCD transfers and the default-Cancel action, and preserve the real device’s US profile, identity, channels and history without a 927 MHz RF test.
